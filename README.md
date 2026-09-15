@@ -29,3 +29,52 @@ draft: true
 - 文章按日期倒序、按月份分组；左侧时间导航跟随滚动高亮，手机上显示为顶部横向导航。
 - 准备发布时再将 `draft` 改为 `false`。草稿不会出现在文章列表、筛选计数、时间线、RSS 或站点地图中。
 - 项目封面统一为 16:9；缺少图片或加载失败时显示项目名称文字封面。
+
+## 部署到 Cloudflare Workers
+
+使用 [OpenNext Cloudflare 适配器](https://developers.cloudflare.com/workers/framework-guides/web-apps/opennext/)，保留 Next.js 构建与服务端渲染。
+
+### 本地验证
+
+使用 Node.js 22 以上版本与 pnpm 10.33.3。Windows 下请在 WSL 的 Linux 文件系统中安装依赖和构建（例如 `~/projects/Actify-Blog`），避免与 Windows 共用 `node_modules`；OpenNext 的原生 Windows 支持不完整。也可直接使用 Cloudflare 的 Linux 构建环境。
+
+```sh
+pnpm install --frozen-lockfile
+pnpm build:cloudflare
+pnpm preview:cloudflare
+```
+
+预览默认在 `http://localhost:8787`。在另一个终端运行：
+
+```powershell
+node scripts/check-site.mjs http://localhost:8787
+```
+
+修改代码后需要重新执行 `pnpm build:cloudflare`。日常开发仍用 `pnpm dev`。
+
+### Cloudflare 控制台填写
+
+先将配置和锁文件提交推送，再在 Workers & Pages 中导入仓库：
+
+| 字段 | 内容 |
+| --- | --- |
+| 仓库 | `xfrrn/Actify-Blog` |
+| 生产分支 | `main` |
+| Worker 名称 | `actify-blog`（与 `wrangler.jsonc` 一致） |
+| 根目录 | `/` |
+| 构建命令 | `pnpm build:cloudflare` |
+| 部署命令 | `pnpm deploy:cloudflare` |
+
+这是 Workers 应用，无需填写 Pages 的输出目录。Worker 入口和资源目录已在 `wrangler.jsonc` 中配置。
+
+在 **Build variables and secrets（构建变量与密钥）** 中设置：
+
+| 变量 | 值 |
+| --- | --- |
+| `NODE_VERSION` | `24.20.0` |
+| `PNPM_VERSION` | `10.33.3` |
+| `NEXT_PUBLIC_SITE_URL` | 实际网站地址，例如 `https://你的正式域名`，不要照填示例 |
+
+没有正式域名时使用 Cloudflare 分配的完整 `workers.dev` 地址。地址应包含 `https://`、不带路径；更换地址后重新构建，确保 canonical、RSS、robots 和站点地图使用新地址。
+
+也可以本地发布：完成构建后执行 `pnpm exec wrangler login`，再执行 `pnpm deploy:cloudflare`。部署命令会发布最近一次 Cloudflare 构建的产物，不会自动重新构建。
