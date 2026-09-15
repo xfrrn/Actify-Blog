@@ -8,7 +8,7 @@ import type { ReactNode } from "react";
 
 // Fill in your public contact details here. Empty links are not rendered.
 const github = "https://github.com/xfrrn";
-const email = "";
+const email = "actify_top@foxmail.com";
 
 export type Project = {
   name: string;
@@ -31,7 +31,7 @@ export const DATA = {
   roles: ["Developer", "AI Builder", "Indie Hacker"],
   description: "I build useful software, explore AI, and turn small ideas into independent products.",
   summary: "I'm Actify, a developer exploring the space between software, AI, and independent products. This is where I share what I'm building, what I'm learning, and the details behind the work.",
-  avatarUrl: "", // Add a file in public/ and set its path, e.g. /avatar.png.
+  avatarUrl: `${github}.png?size=256`,
   skills: [
     { name: "React", icon: ReactLight },
     { name: "Next.js", icon: NextjsIconDark },
@@ -59,7 +59,7 @@ export const DATA = {
     description: "Have a project in mind, an idea to share, or a question about my work? I'd love to hear from you.",
     social: {
       GitHub: { name: "GitHub", url: github, icon: Icons.github, navbar: true },
-      Email: { name: "Email", url: email ? `mailto:${email}` : "", icon: Icons.email, navbar: false },
+      Email: { name: email, url: email ? `mailto:${email}` : "", icon: Icons.email, navbar: false },
       X: { name: "X", url: "", icon: Icons.x, navbar: false },
     },
   },
