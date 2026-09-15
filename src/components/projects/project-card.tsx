@@ -1,5 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
+import { useLanguage } from "@/components/layout/language-provider";
 
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -9,12 +10,13 @@ import { useState } from "react";
 import Markdown from "react-markdown";
 
 function ProjectImage({ src, alt }: { src?: string; alt: string }) {
+  const { t } = useLanguage();
   const [imageError, setImageError] = useState(false);
 
   if (!src || imageError) {
     return (
-      <div className="flex h-full flex-col justify-end gap-3 bg-muted p-6" role="img" aria-label={`${alt} 文字封面`}>
-        <span className="text-xs uppercase tracking-widest text-muted-foreground">Actify / Projects</span>
+      <div className="flex h-full flex-col justify-end gap-3 bg-muted p-6" role="img" aria-label={`${alt} ${t.cover}`}>
+        <span className="text-xs uppercase tracking-widest text-muted-foreground">Actify / {t.projects}</span>
         <span className="max-w-full text-2xl font-semibold leading-tight tracking-tight text-foreground wrap-anywhere">{alt}</span>
       </div>
     );
@@ -65,6 +67,7 @@ export function ProjectCard({
   links,
   className,
 }: Props) {
+  const { t } = useLanguage();
   const media = video ? (
     <video src={video} autoPlay loop muted playsInline className="h-full w-full object-cover" />
   ) : (
@@ -84,7 +87,7 @@ export function ProjectCard({
           target={href.startsWith("http") ? "_blank" : undefined}
           rel={href.startsWith("http") ? "noopener noreferrer" : undefined}
           className="block h-full"
-          aria-label={`查看 ${title}`}
+          aria-label={`${t.view} ${title}`}
         >
           {media}
         </Link> : media}
@@ -115,14 +118,14 @@ export function ProjectCard({
           <div className="flex flex-col gap-1">
             <h3 className="font-semibold wrap-anywhere">{title}</h3>
             {dates && <time className="text-xs text-muted-foreground">{dates}</time>}
-            {status && <Badge variant="secondary" className="mt-1 w-fit text-[11px]">{status}</Badge>}
+            {status && <Badge variant="secondary" className="mt-1 w-fit text-[11px]">{status === "Building" ? t.building : status === "Live" ? t.live : status === "Archived" ? t.archived : status}</Badge>}
           </div>
           {href && <Link
             href={href}
             target={href.startsWith("http") ? "_blank" : undefined}
             rel={href.startsWith("http") ? "noopener noreferrer" : undefined}
             className="text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm"
-            aria-label={`查看 ${title}`}
+            aria-label={`${t.view} ${title}`}
           >
             <ArrowUpRight className="h-4 w-4" aria-hidden />
           </Link>}

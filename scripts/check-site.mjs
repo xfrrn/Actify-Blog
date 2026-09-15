@@ -22,10 +22,28 @@ for (const path of ["/", "/projects", "/blog", "/blog?category=missing", ...post
     assert.ok(!body.includes("/blog?project="), "Projects do not define blog categories");
   }
   if (path.startsWith("/blog?")) {
-    assert.ok(body.includes('aria-label="文章分类"'), "Category dropdown renders");
+    assert.ok(body.includes('aria-label="Post categories"'), "Category dropdown renders");
     assert.ok(!body.includes('name="project"') && !body.includes("关联项目"), "No project filter");
-    assert.ok(body.includes('aria-label="文章时间线"'), "Timeline navigation renders");
+    assert.ok(body.includes('aria-label="Post timeline"'), "Timeline navigation renders");
     assert.ok(body.includes('content="noindex, follow"'), "Filtered views are not indexed");
+  }
+}
+
+// Repeated requests must respect each visitor's language without cache leakage.
+for (const locale of ["en", "zh", "en"]) {
+  for (const [path, english, chinese] of [
+    ["/", "About me", "关于我"],
+    ["/projects", "All projects", "全部作品"],
+    ["/blog?category=missing", "No posts in this category yet", "这个分类下还没有文章"],
+    ["/missing-language-check", "Page not found", "找不到页面"],
+  ]) {
+    const response = await fetch(new URL(path, origin), { headers: { Cookie: `site-language=${locale}` } });
+    assert.equal(response.status, path === "/missing-language-check" ? 404 : 200, path);
+    const body = await response.text();
+    assert.ok(body.includes(`<html lang="${locale === "zh" ? "zh-CN" : "en"}"`), `${path}: document language ${locale}`);
+    assert.ok(body.includes(locale === "zh" ? chinese : english), `${path}: translated content ${locale}`);
+    assert.ok(body.includes(`aria-label="${locale === "zh" ? "Switch to English" : "切换到中文"}"`), `${path}: switch control ${locale}`);
+    assert.match(response.headers.get("cache-control") || "", /private|no-store/, `${path}: language responses aren't shared`);
   }
 }
 
@@ -44,4 +62,4 @@ for (const path of ["/blog/nonexistent-structure-check", ...drafts]) {
     assert.equal((await fetch(new URL(path + suffix, origin))).status, 404, path + suffix);
   }
 }
-console.log("Site checks passed (pages, projects, feeds, share images, drafts and missing posts).");
+console.log("Site checks passed (English/Chinese pages, per-visitor language, projects, feeds, share images, drafts and missing posts).");

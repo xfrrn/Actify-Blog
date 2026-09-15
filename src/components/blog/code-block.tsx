@@ -1,4 +1,5 @@
 "use client";
+import { useLanguage } from "@/components/layout/language-provider";
 
 import { useState, useRef, useEffect, type ComponentProps } from "react";
 import { Copy, Check } from "lucide-react";
@@ -15,6 +16,7 @@ function extractLanguage(className?: string): string {
 }
 
 export function CodeBlock({ children, ...props }: CodeBlockProps) {
+  const { t } = useLanguage();
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState(false);
   const [{ html, className, title }, setRenderState] = useState<{
@@ -82,16 +84,16 @@ export function CodeBlock({ children, ...props }: CodeBlockProps) {
           variant="outline"
           size="icon"
           className={cn("absolute z-10 size-8 text-primary cursor-pointer right-3 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 focus-visible:opacity-100 transition-opacity rounded-md border border-border shadow-none", title ? "top-13" : "top-3")}
-          aria-label={copied ? "Copied code" : "Copy code"}
+          aria-label={copied ? t.copied : t.copy}
         >
           {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
         </Button>
-        <span role="status" className={copyError ? "block p-3 text-xs" : "sr-only"}>{copyError ? "Copy failed. Select the code and copy it manually." : copied ? "Code copied" : ""}</span>
+        <span role="status" className={copyError ? "block p-3 text-xs" : "sr-only"}>{copyError ? t.copyError : copied ? t.copied : ""}</span>
       <pre
         ref={preRef}
         {...props}
         tabIndex={0}
-        aria-label={title ? `Code: ${title}` : "Code block"}
+        aria-label={title ? `${t.code}: ${title}` : t.code}
         className={cn("p-4! pr-14! m-0! overflow-x-auto", props.className)}
       >
         {html && (

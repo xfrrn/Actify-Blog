@@ -68,6 +68,13 @@ assert.deepEqual(groupArchivePosts(ordered).map(({ id, posts }) => [id, posts.le
   ["month-2026-09", 2], ["month-2026-01", 1], ["month-2025-12", 1],
 ]);
 assert.deepEqual(groupArchivePosts([]), []);
+assert.equal(groupArchivePosts(ordered, "en")[0].label, "September 2026");
+assert.equal(groupArchivePosts(ordered, "zh")[0].label, "2026年9月");
+const { normalizeLocale, messages } = await loadSource("../src/lib/i18n.ts");
+assert.equal(normalizeLocale("zh"), "zh");
+for (const value of [undefined, "", "en", "fr", "<script>"]) assert.equal(normalizeLocale(value), "en");
+assert.deepEqual(Object.keys(messages.en), Object.keys(messages.zh));
+for (const dictionary of Object.values(messages)) assert.ok(Object.values(dictionary).every((value) => value.length > 0));
 
 const { default: allPosts } = await loadSource("../.content-collections/generated/allPosts.js");
 const posts = allPosts.filter((post) => !post.draft);

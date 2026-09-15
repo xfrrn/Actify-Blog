@@ -2,7 +2,7 @@
 import BlurFade from "@/components/magicui/blur-fade";
 import BlurFadeText from "@/components/magicui/blur-fade-text";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { DATA } from "@/data/site";
+import { getLanguage } from "@/lib/server-language";
 import Link from "next/link";
 import Markdown from "react-markdown";
 import ContactSection from "@/components/home/contact-section";
@@ -14,15 +14,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Metadata } from "next";
 import { posts } from "@/lib/posts";
 import { PostList } from "@/components/blog/post-list";
+import { formatDate } from "@/lib/utils";
 
-export const metadata: Metadata = {
-  title: { absolute: `${DATA.name} — ${DATA.roles.join(" / ")}` },
-  alternates: { canonical: "/", types: { "application/rss+xml": `${DATA.url}/rss.xml` } },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { data: DATA } = await getLanguage();
+  return {
+    title: { absolute: `${DATA.name} — ${DATA.roles.join(" / ")}` },
+    alternates: { canonical: "/", types: { "application/rss+xml": `${DATA.url}/rss.xml` } },
+  };
+}
 
 const BLUR_FADE_DELAY = 0.04;
 
-export default function Page() {
+export default async function Page() {
+  const { data: DATA, t, locale } = await getLanguage();
   return (
     <main className="min-h-dvh flex flex-col gap-14 relative">
       <section id="hero">
@@ -30,7 +35,7 @@ export default function Page() {
           <div className="gap-2 gap-y-6 flex flex-col md:flex-row justify-between">
             <div className="gap-2 flex flex-col order-2 md:order-1">
               <BlurFade delay={BLUR_FADE_DELAY} yOffset={8}>
-                <h1 className="text-3xl font-semibold tracking-tighter sm:text-4xl lg:text-5xl">你好，我是 {DATA.name}</h1>
+                <h1 className="text-3xl font-semibold tracking-tighter sm:text-4xl lg:text-5xl">{t.hello} {DATA.name}</h1>
               </BlurFade>
               <BlurFade delay={BLUR_FADE_DELAY * 2}>
                 <p className="text-sm font-medium">{DATA.roles.join(" / ")}</p>
@@ -47,7 +52,7 @@ export default function Page() {
                       <social.icon className="size-4" />{social.name}
                     </Link>
                   ))}
-                  <Link href="/blog" className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors">博客 <ArrowUpRight className="size-3.5" /></Link>
+                  <Link href="/blog" className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors">{t.blog} <ArrowUpRight className="size-3.5" /></Link>
                 </div>
               </BlurFade>
             </div>
@@ -63,7 +68,7 @@ export default function Page() {
       <section id="about">
         <div className="flex min-h-0 flex-col gap-y-4">
           <BlurFade delay={BLUR_FADE_DELAY * 3}>
-            <h2 className="text-xl font-bold">关于我</h2>
+            <h2 className="text-xl font-bold">{t.about}</h2>
           </BlurFade>
           <BlurFade delay={BLUR_FADE_DELAY * 4}>
             <div className="prose max-w-full text-pretty font-sans leading-relaxed text-muted-foreground dark:prose-invert">
@@ -77,8 +82,8 @@ export default function Page() {
       <section id="now" className="flex flex-col gap-4">
         <BlurFade delay={BLUR_FADE_DELAY * 5}>
           <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 className="text-xl font-bold">最近在做什么</h2>
-            <time dateTime={DATA.now.updatedAt} className="text-xs text-muted-foreground">更新于 {DATA.now.updatedAt}</time>
+            <h2 className="text-xl font-bold">{t.now}</h2>
+            <time dateTime={DATA.now.updatedAt} className="text-xs text-muted-foreground">{t.updated} {formatDate(DATA.now.updatedAt, locale)}</time>
           </div>
         </BlurFade>
         <div className="grid gap-3 sm:grid-cols-2">
@@ -98,7 +103,7 @@ export default function Page() {
       {DATA.work.length > 0 && <section id="work">
         <div className="flex min-h-0 flex-col gap-y-6">
           <BlurFade delay={BLUR_FADE_DELAY * 5}>
-            <h2 className="text-xl font-bold">Work Experience</h2>
+            <h2 className="text-xl font-bold">{t.experience}</h2>
           </BlurFade>
           <BlurFade delay={BLUR_FADE_DELAY * 6}>
             <WorkSection />
@@ -108,7 +113,7 @@ export default function Page() {
       {DATA.education.length > 0 && <section id="education">
         <div className="flex min-h-0 flex-col gap-y-6">
           <BlurFade delay={BLUR_FADE_DELAY * 7}>
-            <h2 className="text-xl font-bold">Education</h2>
+            <h2 className="text-xl font-bold">{t.education}</h2>
           </BlurFade>
           <div className="flex flex-col gap-8">
             {DATA.education.map((education, index) => (
@@ -166,12 +171,12 @@ export default function Page() {
       <section id="writing" className="flex flex-col gap-6">
         <BlurFade delay={BLUR_FADE_DELAY * 14}>
           <div className="flex items-baseline justify-between gap-3">
-            <h2 className="text-xl font-bold">最近的记录</h2>
-            <Link href="/blog" className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-4">全部文章</Link>
+            <h2 className="text-xl font-bold">{t.writing}</h2>
+            <Link href="/blog" className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-4">{t.allPosts}</Link>
           </div>
         </BlurFade>
-        <PostList posts={posts.slice(0, 3)} />
-        {posts.length === 0 && <p className="text-sm text-muted-foreground">还没有发布文章。这里会记录学习、生活和工作中的具体经历。</p>}
+        <PostList locale={locale} posts={posts.slice(0, 3)} />
+        {posts.length === 0 && <p className="text-sm text-muted-foreground">{t.noPosts}</p>}
       </section>
       <section id="contact">
         <BlurFade delay={BLUR_FADE_DELAY * 16}>

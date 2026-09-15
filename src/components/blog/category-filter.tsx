@@ -1,4 +1,5 @@
 "use client";
+import { useLanguage } from "@/components/layout/language-provider";
 
 import { useEffect, useRef } from "react";
 import Link from "next/link";
@@ -10,6 +11,7 @@ export function CategoryFilter({ categories, selected, total }: {
   selected: string;
   total: number;
 }) {
+  const { t } = useLanguage();
   const details = useRef<HTMLDetailsElement>(null);
 
   useEffect(() => {
@@ -35,11 +37,11 @@ export function CategoryFilter({ categories, selected, total }: {
       onBlur={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget)) event.currentTarget.open = false;
       }}>
-      <summary aria-label={`分类：${selected || "全部文章"}`} className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-xl border bg-background px-4 py-2.5 text-sm transition-colors hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden">
-        <span className="truncate">{selected || "全部文章"}</span>
+      <summary aria-label={`${t.category}: ${selected || t.allPosts}`} className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-xl border bg-background px-4 py-2.5 text-sm transition-colors hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden">
+        <span className="truncate">{selected || t.allPosts}</span>
         <ChevronDown aria-hidden className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
       </summary>
-      <nav aria-label="文章分类" className="absolute left-0 top-full mt-2 max-h-72 w-full overflow-y-auto rounded-xl border bg-popover p-1.5 text-popover-foreground shadow-md">
+      <nav aria-label={t.categories} className="absolute left-0 top-full mt-2 max-h-72 w-full overflow-y-auto rounded-xl border bg-popover p-1.5 text-popover-foreground shadow-md">
         {[{ name: "", count: total }, ...categories].map(({ name, count }) => (
           <Link key={name} href={name ? `/blog?category=${encodeURIComponent(name)}` : "/blog"}
             aria-current={selected === name ? "page" : undefined}
@@ -47,7 +49,7 @@ export function CategoryFilter({ categories, selected, total }: {
             className={cn("flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm hover:bg-accent focus-visible:bg-accent focus-visible:outline-none",
               selected === name && "bg-accent font-medium")}>
             <Check aria-hidden className={cn("size-4 shrink-0", selected !== name && "invisible")} />
-            <span className="min-w-0 flex-1 break-words">{name || "全部文章"}</span>
+            <span className="min-w-0 flex-1 break-words">{name || t.allPosts}</span>
             <span className="text-xs tabular-nums text-muted-foreground">{count}</span>
           </Link>
         ))}

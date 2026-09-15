@@ -75,11 +75,11 @@ const DockIcon = ({ className, children }: DockIconProps) => {
     <motion.div
       ref={ref}
       style={{ width: containerSize, height: containerSize }}
-      className={cn("relative flex aspect-square items-center justify-center rounded-full shrink-0", className)}
+      className={cn("relative flex aspect-square items-center justify-center rounded-full shrink-0 max-sm:size-9!", className)}
     >
       <motion.div
         style={{ width: iconSize, height: iconSize }}
-        className="flex items-center justify-center"
+        className="flex items-center justify-center max-sm:size-4!"
       >
         {children}
       </motion.div>

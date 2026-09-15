@@ -2,6 +2,9 @@
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "actify-blog",
   "main": ".open-next/worker.js",
+  // next-themes serializes functions into an inline script.
+  // https://opennext.js.org/cloudflare/howtos/keep_names
+  "keep_names": false,
   "compatibility_date": "2026-09-15",
   "compatibility_flags": ["nodejs_compat"],
   "routes": [

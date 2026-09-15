@@ -1,5 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 import { CodeBlock } from "@/components/blog/code-block";
+import { ScrollableTable } from "@/components/blog/scrollable-table";
 import { MediaContainer } from "@/components/blog/media-container";
 import type { ComponentProps } from "react";
 
@@ -24,16 +25,7 @@ export const mdxComponents = {
       />
     </div>
   ),
-  table: (props: ComponentProps<"table">) => (
-    <div className="my-6 border border-border rounded-xl overflow-hidden">
-      <div className="w-full overflow-x-auto" tabIndex={0} role="region" aria-label="Scrollable table">
-        <table
-          className="m-0! w-full min-w-full border-separate border-spacing-0"
-          {...props}
-        />
-      </div>
-    </div>
-  ),
+  table: ScrollableTable,
   code: ({ children, ...props }: CodeProps) => {
     if (props["data-language"] || props.className?.includes("language-")) {
       return <code {...props}>{children}</code>;

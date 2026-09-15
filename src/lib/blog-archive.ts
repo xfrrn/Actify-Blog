@@ -19,7 +19,7 @@ export function getArchiveCategories(posts: ArchiveEntry[]) {
     .sort((a, b) => a.name.localeCompare(b.name, "zh-CN"));
 }
 
-export function groupArchivePosts<T extends { date: string }>(posts: T[]) {
+export function groupArchivePosts<T extends { date: string }>(posts: T[], locale: "en" | "zh" = "en") {
   const groups = new Map<string, T[]>();
   for (const post of posts) {
     const month = post.date.slice(0, 7);
@@ -29,7 +29,7 @@ export function groupArchivePosts<T extends { date: string }>(posts: T[]) {
   }
   return Array.from(groups, ([month, posts]) => ({
     id: `month-${month}`,
-    label: `${month.slice(0, 4)} 年 ${Number(month.slice(5))} 月`,
+    label: new Date(`${month}-01T00:00:00Z`).toLocaleDateString(locale === "zh" ? "zh-CN" : "en-US", { year: "numeric", month: "long", timeZone: "UTC" }),
     posts,
   }));
 }

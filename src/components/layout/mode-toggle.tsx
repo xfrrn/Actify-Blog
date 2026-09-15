@@ -1,4 +1,5 @@
 "use client";
+import { useLanguage } from "@/components/layout/language-provider";
 
 import { Button } from "@/components/ui/button";
 import { MoonIcon, SunIcon } from "@radix-ui/react-icons";
@@ -6,6 +7,7 @@ import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 
 export function ModeToggle({ className }: { className?: string }) {
+  const { t } = useLanguage();
   const { resolvedTheme, setTheme } = useTheme();
 
   return (
@@ -14,7 +16,7 @@ export function ModeToggle({ className }: { className?: string }) {
       variant="link"
       size="icon"
       className={cn(className)}
-      aria-label="Toggle theme"
+      aria-label={t.toggleTheme}
       onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
     >
       <SunIcon className="hidden h-full w-full dark:block" />

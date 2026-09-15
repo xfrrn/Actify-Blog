@@ -1,6 +1,7 @@
 import { Icons } from "@/components/icons/social";
 import { HomeIcon, FolderGit2, NotebookIcon, Hammer, BookOpen, Compass } from "lucide-react";
 import type { ReactNode } from "react";
+import type { Locale } from "@/lib/i18n";
 
 // Fill in your public contact details here. Empty links are not rendered.
 const github = "https://github.com/xfrrn";
@@ -20,7 +21,7 @@ export type Project = {
   featured: boolean;
 };
 
-export const DATA = {
+const chineseData = {
   name: "Actify",
   initials: "A",
   url: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://actify.cc").origin,
@@ -48,7 +49,7 @@ export const DATA = {
     email,
     description: "如果你也在做小工具、写论文、尝试出海，或者只是想交流学习和生活，欢迎来信聊聊。",
     social: {
-      GitHub: { name: "GitHub", url: github, icon: Icons.github, navbar: true },
+      GitHub: { name: "xfrrn", url: github, icon: Icons.github, navbar: true },
       Email: { name: email, url: email ? `mailto:${email}` : "", icon: Icons.email, navbar: false },
       X: { name: "@SudoActify", url: "https://x.com/SudoActify", icon: Icons.x, navbar: true },
     },
@@ -105,3 +106,36 @@ export const DATA = {
     links: { title: string; href: string; icon: ReactNode }[];
   }[],
 } as const;
+
+const englishProjectDescriptions: Record<string, string> = {
+  "obsidian-pdf-selection-translator": "Translate selected words or paragraphs while reading PDFs in Obsidian. Works with the built-in PDF viewer and PDF++, with custom OpenAI-compatible endpoints and models. For desktop PDFs with selectable text.",
+  "starmind": "Search your starred GitHub repositories in natural language. Use AI-generated tags and summaries to organize your collection.",
+  "audigest": "Turn videos and podcasts into transcripts, summaries, and notes using speech recognition and language models.",
+  "actify-portfolio": "The website you're visiting, adapted from the Magic UI Portfolio template. A place to document learning, life, and work, publish posts, and share projects.",
+};
+
+export const DATA = {
+  ...chineseData,
+  roles: ["Entrepreneur", "Paper maker", "Global SEO practitioner"],
+  description: "University student and entrepreneur. I build small tools and explore SEO for a global audience.",
+  summary: "I'm Actify, a university student building a business, writing papers, and putting global SEO into practice. I enjoy making small tools and turning ideas into something people can use.\n\nThis is where I document my learning, life, and work, share projects, and write. I'd like to meet others building tools, writing papers, or reaching users around the world.",
+  now: {
+    ...chineseData.now,
+    items: [
+      { label: "Current tool", title: "Obsidian PDF translation", description: "Translate selected words and paragraphs while reading PDFs in Obsidian, using your own model provider.", icon: Hammer },
+      { label: "Learning", title: "SEO for a global audience", description: "Learning how people discover tools through search, and trying what I learn on real websites.", icon: Compass },
+      { label: "Putting together", title: "My website and blog", description: "Collecting the tools I've built, rewriting my introduction, and making room for notes on learning and life.", icon: BookOpen },
+    ],
+  },
+  blog: { description: "Notes on learning, everyday life, building tools, writing papers, and practicing global SEO." },
+  navbar: chineseData.navbar.map((item) => ({ ...item, label: ({ "/": "Home", "/projects": "Projects", "/blog": "Blog" })[item.href] })),
+  contact: { ...chineseData.contact, description: "If you're building tools, writing papers, exploring global markets, or just want to talk about learning and life, get in touch." },
+  projects: chineseData.projects.map((project) => ({
+    ...project,
+    description: englishProjectDescriptions[project.slug] ?? project.description,
+  })),
+};
+
+export function getSiteData(locale: Locale) {
+  return locale === "zh" ? chineseData : DATA;
+}

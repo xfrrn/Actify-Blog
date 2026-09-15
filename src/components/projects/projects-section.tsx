@@ -1,12 +1,13 @@
 import BlurFade from "@/components/magicui/blur-fade";
 import { ProjectCard } from "@/components/projects/project-card";
-import { DATA } from "@/data/site";
+import { getLanguage } from "@/lib/server-language";
 import { Icons } from "@/components/icons/social";
 import Link from "next/link";
 
 const BLUR_FADE_DELAY = 0.04;
 
-export default function ProjectsSection({ featuredOnly = true }: { featuredOnly?: boolean }) {
+export default async function ProjectsSection({ featuredOnly = true }: { featuredOnly?: boolean }) {
+    const { data: DATA, t } = await getLanguage();
     const projects = featuredOnly ? DATA.projects.filter((project) => project.featured) : DATA.projects;
     const Heading = featuredOnly ? "h2" : "h1";
     return (
@@ -19,7 +20,7 @@ export default function ProjectsSection({ featuredOnly = true }: { featuredOnly?
 
                         />
                         <div className="border bg-primary z-10 rounded-xl px-4 py-1">
-                            <span className="text-background text-sm font-medium">{featuredOnly ? "部分作品" : "全部作品"}</span>
+                            <span className="text-background text-sm font-medium">{featuredOnly ? t.featured : t.allProjects}</span>
                         </div>
                         <div
                             className="flex-1 h-px bg-linear-to-l from-transparent from-5% via-border via-95% to-transparent"
@@ -27,9 +28,9 @@ export default function ProjectsSection({ featuredOnly = true }: { featuredOnly?
                         />
                     </div>
                     <div className="flex flex-col gap-y-3 items-center justify-center">
-                        <Heading className="text-3xl font-bold tracking-tighter sm:text-4xl">{featuredOnly ? "我做的小工具" : "作品"}</Heading>
+                        <Heading className="text-3xl font-bold tracking-tighter sm:text-4xl">{featuredOnly ? t.tools : t.projects}</Heading>
                         <p className="text-muted-foreground md:text-lg/relaxed lg:text-base/relaxed xl:text-lg/relaxed text-balance text-center">
-                            PDF 划词翻译、GitHub 收藏整理、音视频笔记，以及这个个人网站。
+                            {t.projectsDescription}
                         </p>
                     </div>
                 </div>
@@ -52,14 +53,14 @@ export default function ProjectsSection({ featuredOnly = true }: { featuredOnly?
                                 video={project.video}
                                 links={[
                                     ...(project.github ? [{ type: "GitHub", href: project.github, icon: <Icons.github className="size-3" /> }] : []),
-                                    ...(project.demo ? [{ type: "Demo", href: project.demo, icon: <Icons.globe className="size-3" /> }] : []),
+                                    ...(project.demo ? [{ type: t.demo, href: project.demo, icon: <Icons.globe className="size-3" /> }] : []),
                                 ]}
                             />
                         </BlurFade>
                     ))}
                 </div>
-                {projects.length === 0 && <p className="text-sm text-muted-foreground text-center">暂时没有公开展示的作品。</p>}
-                {featuredOnly && <Link href="/projects" className="self-center text-sm text-muted-foreground hover:text-foreground underline underline-offset-4">查看全部作品</Link>}
+                {projects.length === 0 && <p className="text-sm text-muted-foreground text-center">{t.noProjects}</p>}
+                {featuredOnly && <Link href="/projects" className="self-center text-sm text-muted-foreground hover:text-foreground underline underline-offset-4">{t.viewProjects}</Link>}
             </div>
         </section>
     );

@@ -1,4 +1,5 @@
 "use client";
+import { useLanguage } from "@/components/layout/language-provider";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
@@ -7,6 +8,7 @@ export function ArchiveTimeline({ months, children }: {
   months: { id: string; label: string; count: number }[];
   children: ReactNode;
 }) {
+  const { t } = useLanguage();
   const [active, setActive] = useState<string | undefined>(months[0]?.id);
   const nav = useRef<HTMLElement>(null);
 
@@ -49,8 +51,8 @@ export function ArchiveTimeline({ months, children }: {
 
   return (
     <div className="grid items-start gap-8 sm:grid-cols-[7.5rem_minmax(0,1fr)] sm:gap-6">
-      <nav ref={nav} aria-label="文章时间线" className="sticky top-0 z-20 min-w-0 bg-background py-3 sm:top-8 sm:py-0">
-        <p className="mb-3 text-xs font-medium text-muted-foreground">按时间浏览</p>
+      <nav ref={nav} aria-label={t.timeline} className="sticky top-0 z-20 min-w-0 bg-background py-3 sm:top-8 sm:py-0">
+        <p className="mb-3 text-xs font-medium text-muted-foreground">{t.browseTime}</p>
         {months.length ? (
           <div className="relative flex overflow-x-auto border-b sm:max-h-[calc(100dvh-10rem)] sm:flex-col sm:overflow-x-hidden sm:overflow-y-auto sm:border-b-0 sm:border-l">
             {months.map((month) => (
@@ -61,7 +63,7 @@ export function ArchiveTimeline({ months, children }: {
               </a>
             ))}
           </div>
-        ) : <p className="text-xs text-muted-foreground">暂无时间记录</p>}
+        ) : <p className="text-xs text-muted-foreground">{t.noDates}</p>}
       </nav>
       <div className="min-w-0">{children}</div>
     </div>
