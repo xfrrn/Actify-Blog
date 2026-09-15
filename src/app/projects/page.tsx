@@ -4,12 +4,12 @@ import ProjectsSection from "@/components/projects/projects-section";
 import { DATA } from "@/data/site";
 
 export const metadata: Metadata = {
-  title: "Projects",
-  description: `Software, experiments, and independent products by ${DATA.name}.`,
+  title: "作品",
+  description: `${DATA.name} 的小工具和个人项目：PDF 划词翻译、GitHub 收藏整理与音视频笔记。`,
   alternates: { canonical: "/projects", types: { "application/rss+xml": `${DATA.url}/rss.xml` } },
   openGraph: {
-    title: `Projects | ${DATA.name}`,
-    description: `Software, experiments, and independent products by ${DATA.name}.`,
+    title: `作品 | ${DATA.name}`,
+    description: `${DATA.name} 的小工具和个人项目：PDF 划词翻译、GitHub 收藏整理与音视频笔记。`,
     url: "/projects",
   },
 };

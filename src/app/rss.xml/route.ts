@@ -18,7 +18,7 @@ export function GET() {
       <guid isPermaLink="true">${url}</guid>
       <description>${escapeXml(post.description)}</description>
       <pubDate>${new Date(post.date).toUTCString()}</pubDate>
-      ${[post.category, ...post.tags].map((tag) => `<category>${escapeXml(tag)}</category>`).join("")}
+      ${[...(post.category ? [post.category] : []), ...post.tags].map((tag) => `<category>${escapeXml(tag)}</category>`).join("")}
     </item>`;
   }).join("");
 

@@ -128,7 +128,7 @@ export default async function Blog({
           <span>{post.author || DATA.name}</span>
           <time dateTime={post.date}>{formatDate(post.date)}</time>
           <span>{post.readingMinutes} min read</span>
-          <span>{post.category}</span>
+          {post.category && <span>{post.category}</span>}
           {post.updatedAt && post.updatedAt !== post.date && <span>Updated <time dateTime={post.updatedAt}>{formatDate(post.updatedAt)}</time></span>}
         </div>
         <div className="flex flex-wrap gap-1.5">{post.tags.map((tag) => <Badge key={tag} variant="secondary">{tag}</Badge>)}</div>

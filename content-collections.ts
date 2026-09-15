@@ -13,7 +13,7 @@ const posts = defineCollection({
     description: z.string().min(1).optional(),
     date: z.iso.date().optional(),
     tags: z.array(z.string().min(1)).default([]),
-    category: z.string().min(1).default("Notes"),
+    category: z.string().trim().optional(),
     cover: z.string().optional(),
     coverAlt: z.string().optional(),
     draft: z.boolean().default(false),

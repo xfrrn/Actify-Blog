@@ -10,7 +10,6 @@ import HackathonsSection from "@/components/home/hackathons-section";
 import ProjectsSection from "@/components/projects/projects-section";
 import WorkSection from "@/components/home/work-section";
 import { ArrowUpRight } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Metadata } from "next";
 import { posts } from "@/lib/posts";
@@ -31,7 +30,7 @@ export default function Page() {
           <div className="gap-2 gap-y-6 flex flex-col md:flex-row justify-between">
             <div className="gap-2 flex flex-col order-2 md:order-1">
               <BlurFade delay={BLUR_FADE_DELAY} yOffset={8}>
-                <h1 className="text-3xl font-semibold tracking-tighter sm:text-4xl lg:text-5xl">Hi, I&apos;m {DATA.name}</h1>
+                <h1 className="text-3xl font-semibold tracking-tighter sm:text-4xl lg:text-5xl">你好，我是 {DATA.name}</h1>
               </BlurFade>
               <BlurFade delay={BLUR_FADE_DELAY * 2}>
                 <p className="text-sm font-medium">{DATA.roles.join(" / ")}</p>
@@ -48,7 +47,7 @@ export default function Page() {
                       <social.icon className="size-4" />{social.name}
                     </Link>
                   ))}
-                  <Link href="/blog" className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors">Blog <ArrowUpRight className="size-3.5" /></Link>
+                  <Link href="/blog" className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors">博客 <ArrowUpRight className="size-3.5" /></Link>
                 </div>
               </BlurFade>
             </div>
@@ -64,7 +63,7 @@ export default function Page() {
       <section id="about">
         <div className="flex min-h-0 flex-col gap-y-4">
           <BlurFade delay={BLUR_FADE_DELAY * 3}>
-            <h2 className="text-xl font-bold">About</h2>
+            <h2 className="text-xl font-bold">关于我</h2>
           </BlurFade>
           <BlurFade delay={BLUR_FADE_DELAY * 4}>
             <div className="prose max-w-full text-pretty font-sans leading-relaxed text-muted-foreground dark:prose-invert">
@@ -78,8 +77,8 @@ export default function Page() {
       <section id="now" className="flex flex-col gap-4">
         <BlurFade delay={BLUR_FADE_DELAY * 5}>
           <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 className="text-xl font-bold">What I&apos;m doing now</h2>
-            <time dateTime={DATA.now.updatedAt} className="text-xs text-muted-foreground">Updated {DATA.now.updatedAt}</time>
+            <h2 className="text-xl font-bold">最近在做什么</h2>
+            <time dateTime={DATA.now.updatedAt} className="text-xs text-muted-foreground">更新于 {DATA.now.updatedAt}</time>
           </div>
         </BlurFade>
         <div className="grid gap-3 sm:grid-cols-2">
@@ -154,23 +153,6 @@ export default function Page() {
           </div>
         </div>
       </section>}
-      <section id="skills">
-        <div className="flex min-h-0 flex-col gap-y-4">
-          <BlurFade delay={BLUR_FADE_DELAY * 9}>
-            <h2 className="text-xl font-bold">Tech Stack</h2>
-          </BlurFade>
-          <div className="flex flex-wrap gap-2">
-            {DATA.skills.map((skill, id) => (
-              <BlurFade key={skill.name} delay={BLUR_FADE_DELAY * 10 + id * 0.05}>
-                <Badge variant="outline" className="border bg-background border-border ring-2 ring-border/20 rounded-xl h-8 w-fit px-4 flex items-center gap-2">
-                  {skill.icon && <skill.icon className="size-4 rounded overflow-hidden object-contain" />}
-                  <span className="text-foreground text-sm font-medium">{skill.name}</span>
-                </Badge>
-              </BlurFade>
-            ))}
-          </div>
-        </div>
-      </section>
       <div>
         <BlurFade delay={BLUR_FADE_DELAY * 11}>
           <ProjectsSection />
@@ -184,12 +166,12 @@ export default function Page() {
       <section id="writing" className="flex flex-col gap-6">
         <BlurFade delay={BLUR_FADE_DELAY * 14}>
           <div className="flex items-baseline justify-between gap-3">
-            <h2 className="text-xl font-bold">Latest Writing</h2>
-            <Link href="/blog" className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-4">All posts</Link>
+            <h2 className="text-xl font-bold">最近的记录</h2>
+            <Link href="/blog" className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-4">全部文章</Link>
           </div>
         </BlurFade>
         <PostList posts={posts.slice(0, 3)} />
-        {posts.length === 0 && <p className="text-sm text-muted-foreground">Notes are on the way. Check back soon.</p>}
+        {posts.length === 0 && <p className="text-sm text-muted-foreground">还没有发布文章。这里会记录学习、生活和工作中的具体经历。</p>}
       </section>
       <section id="contact">
         <BlurFade delay={BLUR_FADE_DELAY * 16}>

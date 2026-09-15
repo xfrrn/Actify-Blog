@@ -1,82 +1,73 @@
-import BlurFade from "@/components/magicui/blur-fade";
-import { posts } from "@/lib/posts";
-import Link from "next/link";
 import type { Metadata } from "next";
-import { paginate, normalizePage } from "@/lib/pagination";
+import Link from "next/link";
+import { posts } from "@/lib/posts";
+import { filterArchivePosts, getArchiveCategories, groupArchivePosts } from "@/lib/blog-archive";
+import { ArchiveTimeline } from "@/components/blog/archive-timeline";
 import { PostList } from "@/components/blog/post-list";
 import { DATA } from "@/data/site";
+import { CategoryFilter } from "@/components/blog/category-filter";
 
-const blogMetadata: Metadata = {
-  title: "Blog",
-  description: DATA.blog.description,
-  openGraph: { title: `Blog | ${DATA.name}`, description: DATA.blog.description, url: "/blog" },
-  twitter: { card: "summary_large_image", title: `Blog | ${DATA.name}`, description: DATA.blog.description },
-};
-
-const PAGE_SIZE = 5;
-const BLUR_FADE_DELAY = 0.04;
-
-type BlogSearchParams = Promise<{ page?: string | string[] }>;
-
-function getPage(page: string | string[] | undefined) {
-  return normalizePage(Array.isArray(page) ? page[0] : page, Math.ceil(posts.length / PAGE_SIZE));
-}
+type BlogSearchParams = Promise<{ category?: string | string[] }>;
+const first = (value: string | string[] | undefined) => ((Array.isArray(value) ? value[0] : value) ?? "").trim();
 
 export async function generateMetadata({ searchParams }: { searchParams: BlogSearchParams }): Promise<Metadata> {
-  const page = getPage((await searchParams).page);
-  const canonical = page > 1 ? `/blog?page=${page}` : "/blog";
+  const params = await searchParams;
   return {
-    ...blogMetadata,
-    alternates: { canonical, types: { "application/rss+xml": `${DATA.url}/rss.xml` } },
-    openGraph: { ...blogMetadata.openGraph, url: canonical },
+    title: "博客",
+    description: DATA.blog.description,
+    alternates: { canonical: "/blog", types: { "application/rss+xml": `${DATA.url}/rss.xml` } },
+    openGraph: { title: `博客 | ${DATA.name}`, description: DATA.blog.description, url: "/blog" },
+    twitter: { card: "summary_large_image", title: `博客 | ${DATA.name}`, description: DATA.blog.description },
+    ...(first(params.category) ? { robots: { index: false, follow: true } } : {}),
   };
 }
 
-export default async function BlogPage({ searchParams }: {
-  searchParams: BlogSearchParams;
-}) {
-  const { page: pageParam } = await searchParams;
-  const currentPage = getPage(pageParam);
-  const { items: paginatedPosts, pagination } = paginate(posts, { page: currentPage, pageSize: PAGE_SIZE });
+export default async function BlogPage({ searchParams }: { searchParams: BlogSearchParams }) {
+  const params = await searchParams;
+  const category = first(params.category);
+  const filtered = filterArchivePosts(posts, category);
+  // ponytail: render the whole archive; split by year if its size slows the initial load.
+  const groups = groupArchivePosts(filtered);
+  const categories = getArchiveCategories(posts);
 
   return (
     <main id="blog">
-      <BlurFade delay={BLUR_FADE_DELAY}>
-        <div className="flex items-center justify-between gap-3 mb-2">
-          <h1 className="text-2xl font-semibold tracking-tight">Blog <span className="ml-1 bg-card border border-border rounded-md px-2 py-1 text-muted-foreground text-sm">{posts.length} posts</span></h1>
-          <a href="/rss.xml" className="text-sm text-muted-foreground hover:text-foreground underline underline-offset-4">RSS</a>
+      <header className="mb-8">
+        <div className="mb-3 flex items-baseline justify-between gap-3">
+          <h1 className="text-3xl font-semibold tracking-tight">博客</h1>
+          <a href="/rss.xml" className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground">RSS</a>
         </div>
-        <p className="text-sm text-muted-foreground mb-8">{DATA.blog.description}</p>
-      </BlurFade>
+        <p className="text-sm leading-relaxed text-muted-foreground">{DATA.blog.description}</p>
+      </header>
 
-      {paginatedPosts.length > 0 ? (
-        <>
-          <PostList posts={paginatedPosts} startIndex={(pagination.page - 1) * PAGE_SIZE} />
-          {pagination.totalPages > 1 && (
-            <BlurFade delay={BLUR_FADE_DELAY * 4}>
-              <nav aria-label="Blog pagination" className="flex gap-3 flex-wrap items-center justify-between mt-8">
-                <div className="text-sm text-muted-foreground">Page {pagination.page} of {pagination.totalPages}</div>
-                <div className="flex gap-2 sm:justify-end">
-                  {pagination.hasPreviousPage ? (
-                    <Link href={pagination.page === 2 ? "/blog" : `/blog?page=${pagination.page - 1}`} className="h-8 w-fit px-2 flex items-center justify-center text-sm border border-border rounded-lg hover:bg-accent/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">Previous</Link>
-                  ) : (
-                    <span aria-disabled="true" className="h-8 w-fit px-2 flex items-center justify-center text-sm border border-border rounded-lg opacity-50">Previous</span>
-                  )}
-                  {pagination.hasNextPage ? (
-                    <Link href={`/blog?page=${pagination.page + 1}`} className="h-8 w-fit px-2 flex items-center justify-center text-sm border border-border rounded-lg hover:bg-accent/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">Next</Link>
-                  ) : (
-                    <span aria-disabled="true" className="h-8 w-fit px-2 flex items-center justify-center text-sm border border-border rounded-lg opacity-50">Next</span>
-                  )}
-                </div>
-              </nav>
-            </BlurFade>
-          )}
-        </>
-      ) : (
-        <BlurFade delay={BLUR_FADE_DELAY * 2}>
-          <div className="py-12 px-4 border border-border rounded-xl text-muted-foreground text-center">No blog posts yet. Check back soon!</div>
-        </BlurFade>
-      )}
+      <div className="mb-6 flex flex-col gap-2 border-y py-5">
+        <p className="text-xs font-medium text-muted-foreground">分类</p>
+        <CategoryFilter key={category} categories={categories} selected={category} total={posts.length} />
+      </div>
+
+      <div className="mb-6 flex items-center justify-between gap-3 text-sm text-muted-foreground">
+        <p role="status">{filtered.length} 篇文章{category && ` · ${category}`}</p>
+        {category && <Link href="/blog" className="shrink-0 underline underline-offset-4 hover:text-foreground">清除筛选</Link>}
+      </div>
+
+      <ArchiveTimeline key={category} months={groups.map(({ id, label, posts }) => ({ id, label, count: posts.length }))}>
+        {groups.length ? (
+          <div className="space-y-12 border-l pl-5 sm:pl-6">
+            {groups.map((group) => (
+              <section key={group.id} id={group.id} aria-labelledby={`${group.id}-heading`} className="relative scroll-mt-28 sm:scroll-mt-12">
+                <span aria-hidden className="absolute -left-[1.5625rem] top-2 size-2 rounded-full bg-foreground sm:-left-[1.8125rem]" />
+                <h2 id={`${group.id}-heading`} className="mb-6 text-lg font-semibold tabular-nums">{group.label}</h2>
+                <PostList posts={group.posts} numbered={false} />
+              </section>
+            ))}
+          </div>
+        ) : (
+          <div className="border-l py-8 pl-5 sm:pl-6">
+            <h2 className="mb-2 text-base font-medium">{category ? "这个分类下还没有文章" : "第一篇记录，从这里开始"}</h2>
+            <p className="text-sm leading-relaxed text-muted-foreground">{category ? "可以清除筛选，看看其他文章。" : "还没有发布文章。新的记录会按月份出现在这条时间线上。"}</p>
+          </div>
+        )}
+      </ArchiveTimeline>
     </main>
   );
 }

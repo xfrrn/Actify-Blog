@@ -19,7 +19,7 @@ export default function ProjectsSection({ featuredOnly = true }: { featuredOnly?
 
                         />
                         <div className="border bg-primary z-10 rounded-xl px-4 py-1">
-                            <span className="text-background text-sm font-medium">{featuredOnly ? "Featured Projects" : "All Projects"}</span>
+                            <span className="text-background text-sm font-medium">{featuredOnly ? "部分作品" : "全部作品"}</span>
                         </div>
                         <div
                             className="flex-1 h-px bg-linear-to-l from-transparent from-5% via-border via-95% to-transparent"
@@ -27,9 +27,9 @@ export default function ProjectsSection({ featuredOnly = true }: { featuredOnly?
                         />
                     </div>
                     <div className="flex flex-col gap-y-3 items-center justify-center">
-                        <Heading className="text-3xl font-bold tracking-tighter sm:text-4xl">{featuredOnly ? "What I'm building" : "Projects"}</Heading>
+                        <Heading className="text-3xl font-bold tracking-tighter sm:text-4xl">{featuredOnly ? "我做的小工具" : "作品"}</Heading>
                         <p className="text-muted-foreground md:text-lg/relaxed lg:text-base/relaxed xl:text-lg/relaxed text-balance text-center">
-                            Software, experiments, and small ideas taking shape.
+                            PDF 划词翻译、GitHub 收藏整理、音视频笔记，以及这个个人网站。
                         </p>
                     </div>
                 </div>
@@ -58,8 +58,8 @@ export default function ProjectsSection({ featuredOnly = true }: { featuredOnly?
                         </BlurFade>
                     ))}
                 </div>
-                {projects.length === 0 && <p className="text-sm text-muted-foreground text-center">More projects are on the way.</p>}
-                {featuredOnly && <Link href="/projects" className="self-center text-sm text-muted-foreground hover:text-foreground underline underline-offset-4">View all projects</Link>}
+                {projects.length === 0 && <p className="text-sm text-muted-foreground text-center">暂时没有公开展示的作品。</p>}
+                {featuredOnly && <Link href="/projects" className="self-center text-sm text-muted-foreground hover:text-foreground underline underline-offset-4">查看全部作品</Link>}
             </div>
         </section>
     );

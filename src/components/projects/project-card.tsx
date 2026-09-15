@@ -8,19 +8,27 @@ import Link from "next/link";
 import { useState } from "react";
 import Markdown from "react-markdown";
 
-function ProjectImage({ src, alt }: { src: string; alt: string }) {
+function ProjectImage({ src, alt }: { src?: string; alt: string }) {
   const [imageError, setImageError] = useState(false);
 
   if (!src || imageError) {
-    return <div className="w-full h-48 bg-muted" />;
+    return (
+      <div className="flex h-full flex-col justify-end gap-3 bg-muted p-6" role="img" aria-label={`${alt} 文字封面`}>
+        <span className="text-xs uppercase tracking-widest text-muted-foreground">Actify / Projects</span>
+        <span className="max-w-full text-2xl font-semibold leading-tight tracking-tight text-foreground wrap-anywhere">{alt}</span>
+      </div>
+    );
   }
 
   return (
     <img
+      ref={(element) => {
+        if (element?.complete && element.naturalWidth === 0) setImageError(true);
+      }}
       src={src}
       alt={alt}
       loading="lazy"
-      className="w-full h-48 object-cover"
+      className="h-full w-full object-cover"
       onError={() => setImageError(true)}
     />
   );
@@ -32,7 +40,7 @@ interface Props {
   status?: string;
   href?: string;
   description: string;
-  dates: string;
+  dates?: string;
   tags: readonly string[];
   image?: string;
   video?: string;
@@ -58,11 +66,9 @@ export function ProjectCard({
   className,
 }: Props) {
   const media = video ? (
-    <video src={video} autoPlay loop muted playsInline className="w-full h-48 object-cover" />
-  ) : image ? (
-    <ProjectImage src={image} alt={title} />
+    <video src={video} autoPlay loop muted playsInline className="h-full w-full object-cover" />
   ) : (
-    <div className="w-full h-48 bg-muted" />
+    <ProjectImage key={image} src={image} alt={title} />
   );
   return (
     <div
@@ -72,18 +78,20 @@ export function ProjectCard({
         className
       )}
     >
-      <div className="relative shrink-0">
+      <div className="relative aspect-video shrink-0 overflow-hidden border-b bg-muted" data-project-cover>
         {href ? <Link
           href={href}
           target={href.startsWith("http") ? "_blank" : undefined}
           rel={href.startsWith("http") ? "noopener noreferrer" : undefined}
-          className="block"
-          aria-label={`Open ${title}`}
+          className="block h-full"
+          aria-label={`查看 ${title}`}
         >
           {media}
         </Link> : media}
+      </div>
+      <div className="p-6 flex flex-col gap-3 flex-1">
         {links && links.length > 0 && (
-          <div className="absolute top-2 right-2 flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2">
             {links.map((link, idx) => (
               <Link
                 href={link.href}
@@ -103,12 +111,10 @@ export function ProjectCard({
             ))}
           </div>
         )}
-      </div>
-      <div className="p-6 flex flex-col gap-3 flex-1">
         <div className="flex items-start justify-between gap-2">
           <div className="flex flex-col gap-1">
             <h3 className="font-semibold wrap-anywhere">{title}</h3>
-            <time className="text-xs text-muted-foreground">{dates}</time>
+            {dates && <time className="text-xs text-muted-foreground">{dates}</time>}
             {status && <Badge variant="secondary" className="mt-1 w-fit text-[11px]">{status}</Badge>}
           </div>
           {href && <Link
@@ -116,7 +122,7 @@ export function ProjectCard({
             target={href.startsWith("http") ? "_blank" : undefined}
             rel={href.startsWith("http") ? "noopener noreferrer" : undefined}
             className="text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm"
-            aria-label={`Open ${title}`}
+            aria-label={`查看 ${title}`}
           >
             <ArrowUpRight className="h-4 w-4" aria-hidden />
           </Link>}

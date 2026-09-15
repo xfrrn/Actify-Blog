@@ -1,4 +1,5 @@
 ---
+draft: true
 title: "Example: starting a build log"
 description: "A simple format for recording what you built, what you learned, and what comes next. This is sample content."
 date: "2026-09-10"
