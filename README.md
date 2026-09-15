@@ -73,8 +73,8 @@ node scripts/check-site.mjs http://localhost:8787
 | --- | --- |
 | `NODE_VERSION` | `24.20.0` |
 | `PNPM_VERSION` | `10.33.3` |
-| `NEXT_PUBLIC_SITE_URL` | 实际网站地址，例如 `https://你的正式域名`，不要照填示例 |
+| `NEXT_PUBLIC_SITE_URL` | `https://actify.cc` |
 
-没有正式域名时使用 Cloudflare 分配的完整 `workers.dev` 地址。地址应包含 `https://`、不带路径；更换地址后重新构建，确保 canonical、RSS、robots 和站点地图使用新地址。
+正式域名为 `https://actify.cc`，已在 `wrangler.jsonc` 中声明为 Custom Domain。部署时 Cloudflare 会配置对应的 DNS 和 HTTPS 证书。网站地址用于 canonical、RSS、robots 和站点地图；更换域名后需更新配置并重新构建。
 
 也可以本地发布：完成构建后执行 `pnpm exec wrangler login`，再执行 `pnpm deploy:cloudflare`。部署命令会发布最近一次 Cloudflare 构建的产物，不会自动重新构建。
