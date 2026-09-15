@@ -1,0 +1,38 @@
+---
+title: "Example: keeping project data in one place"
+description: "How the portfolio shares one project record between its featured section and the projects page. A short sample note."
+date: "2026-09-09"
+tags: ["Example", "TypeScript", "Portfolio"]
+category: "Development"
+---
+
+这是一篇**示例技术笔记**，介绍当前网站已经使用的数据组织方式。
+
+## 一份项目资料
+
+首页与项目汇总页读取同一份 `src/data/resume.tsx`。修改项目名称或技术栈时，两处展示会一起更新。
+
+```ts title="resume.tsx"
+{
+  name: "Actify Portfolio",
+  slug: "actify-portfolio",
+  description: "A personal site for projects and development notes.",
+  dates: "September 2026 — Present",
+  technologies: ["Next.js", "TypeScript", "MDX"],
+  demo: "/",
+  status: "Building",
+  featured: true,
+}
+```
+
+## 首页只保留精选
+
+`featured: true` 的项目会出现在首页。`/projects` 展示全部项目，并复用同一张项目卡片。图片、状态、GitHub 与 Demo 都属于项目数据。
+
+没有公开源码的项目可以不填 GitHub 链接。组件只展示已经填写的有效入口，避免出现无法访问的占位链接。
+
+## 什么时候增加详情页
+
+当一个项目需要独立讲清背景、过程与结果时，再增加详情页。第一版先用项目简介、链接和相关博客完成展示。
+
+可以继续阅读 [MDX 写作示例](/blog/mdx-writing-guide)，查看代码、图片、表格和目录的完整效果。

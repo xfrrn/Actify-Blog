@@ -27,6 +27,8 @@ export const metadata: Metadata = {
     template: `%s | ${DATA.name}`,
   },
   description: DATA.description,
+  authors: [{ name: DATA.name, url: DATA.url }],
+  alternates: { types: { "application/rss+xml": `${DATA.url}/rss.xml` } },
   openGraph: {
     title: `${DATA.name}`,
     description: DATA.description,
@@ -50,10 +52,6 @@ export const metadata: Metadata = {
     title: `${DATA.name}`,
     card: "summary_large_image",
   },
-  verification: {
-    google: "",
-    yandex: "",
-  },
 };
 
 export default function RootLayout({
@@ -70,6 +68,7 @@ export default function RootLayout({
           geistMono.variable
         )}
       >
+        <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded-md focus:bg-background focus:p-3">Skip to content</a>
         <ThemeProvider attribute="class" defaultTheme="light">
           <TooltipProvider delayDuration={0}>
             <div className="absolute inset-0 top-0 left-0 right-0 h-[100px] overflow-hidden z-0">
@@ -83,7 +82,7 @@ export default function RootLayout({
                 }}
               />
             </div>
-            <div className="relative z-10 max-w-2xl mx-auto py-12 pb-24 sm:py-24 px-6">
+            <div id="main-content" className="relative z-10 min-w-0 max-w-2xl mx-auto py-12 pb-28 sm:py-24 px-6">
               {children}
             </div>
             <Navbar />

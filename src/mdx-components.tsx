@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import { CodeBlock } from "@/components/mdx/code-block";
 import { MediaContainer } from "@/components/mdx/media-container";
 import type { ComponentProps } from "react";
@@ -8,6 +9,7 @@ type CodeProps = ComponentProps<"code"> & {
 
 export const mdxComponents = {
   MediaContainer,
+  img: (props: ComponentProps<"img">) => <img {...props} alt={props.alt || ""} loading="lazy" className="max-w-full h-auto rounded-xl border" />,
   pre: (props: ComponentProps<"pre">) => <CodeBlock {...props} />,
   hr: (props: ComponentProps<"hr">) => (
     <div className="my-10 flex w-full items-center" {...props}>
@@ -24,7 +26,7 @@ export const mdxComponents = {
   ),
   table: (props: ComponentProps<"table">) => (
     <div className="my-6 border border-border rounded-xl overflow-hidden">
-      <div className="w-full overflow-x-auto">
+      <div className="w-full overflow-x-auto" tabIndex={0} role="region" aria-label="Scrollable table">
         <table
           className="m-0! w-full min-w-full border-separate border-spacing-0"
           {...props}
@@ -33,7 +35,7 @@ export const mdxComponents = {
     </div>
   ),
   code: ({ children, ...props }: CodeProps) => {
-    if (props["data-language"]) {
+    if (props["data-language"] || props.className?.includes("language-")) {
       return <code {...props}>{children}</code>;
     }
     return (
@@ -46,4 +48,3 @@ export const mdxComponents = {
     );
   },
 } as const;
-

@@ -120,16 +120,24 @@
     @apply bg-background text-foreground;
   }
 
+  a:focus-visible, summary:focus-visible, [tabindex="0"]:focus-visible {
+    @apply outline-2 outline-ring outline-offset-4;
+  }
+
+  .prose :is(h2, h3, h4, h5, h6) {
+    scroll-margin-top: 2rem;
+  }
+
   /* Shiki dual theme support */
   .shiki,
   .shiki span {
-    color: var(--shiki-light);
+    color: var(--shiki-light, var(--foreground));
     background-color: transparent;
   }
 
   .dark .shiki,
   .dark .shiki span {
-    color: var(--shiki-dark);
+    color: var(--shiki-dark, var(--foreground));
     background-color: transparent;
   }
 
@@ -137,8 +145,22 @@
     @apply leading-relaxed bg-transparent! font-mono!;
   }
 
-  .prose code {
+  .prose :not(pre) > code {
     @apply m-0! mx-1! border rounded-md! px-1.5 py-0.5 bg-muted/60 dark:bg-muted/40 text-[13px]! font-mono text-foreground/90!;
+  }
+
+  .prose pre code {
+    display: block;
+    width: max-content;
+    min-width: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    font-size: 13px;
+    white-space: pre;
+    overflow-wrap: normal;
+    word-break: normal;
   }
 
   .prose code::before, .prose code::after {

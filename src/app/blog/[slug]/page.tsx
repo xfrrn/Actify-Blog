@@ -1,4 +1,5 @@
-import { allPosts } from "content-collections";
+/* eslint-disable @next/next/no-img-element */
+import { posts, getPost } from "@/lib/posts";
 import { formatDate } from "@/lib/utils";
 import { DATA } from "@/data/resume";
 import type { Metadata } from "next";
@@ -7,19 +8,11 @@ import { MDXContent } from "@content-collections/mdx/react";
 import { mdxComponents } from "@/mdx-components";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-
-function getSortedPosts() {
-  return [...allPosts].sort((a, b) => {
-    if (new Date(a.publishedAt) > new Date(b.publishedAt)) {
-      return -1;
-    }
-    return 1;
-  });
-}
+import { Badge } from "@/components/ui/badge";
 
 export async function generateStaticParams() {
-  return allPosts.map((post) => ({
-    slug: post._meta.path.replace(/\.mdx$/, ""),
+  return posts.map((post) => ({
+    slug: post.slug,
   }));
 }
 
@@ -31,43 +24,38 @@ export async function generateMetadata({
   }>;
 }): Promise<Metadata | undefined> {
   const { slug } = await params;
-  const post = allPosts.find((p) => p._meta.path.replace(/\.mdx$/, "") === slug);
+  const post = getPost(slug);
 
   if (!post) {
     return undefined;
   }
 
-  let {
-    title,
-    publishedAt: publishedTime,
-    summary: description,
-    image,
-  } = post;
+  const { title, description } = post;
+  const image = new URL(post.cover || `/blog/${slug}/opengraph-image`, DATA.url).href;
 
   return {
     title,
     description,
+    authors: [{ name: post.author || DATA.name, url: DATA.url }],
+    keywords: post.tags,
+    alternates: { canonical: `/blog/${slug}`, types: { "application/rss+xml": `${DATA.url}/rss.xml` } },
     openGraph: {
       title,
       description,
       type: "article",
-      publishedTime,
+      publishedTime: new Date(post.date).toISOString(),
+      modifiedTime: new Date(post.updatedAt || post.date).toISOString(),
+      authors: [post.author || DATA.name],
+      tags: post.tags,
+      section: post.category,
       url: `${DATA.url}/blog/${slug}`,
-      ...(image && {
-        images: [
-          {
-            url: `${DATA.url}${image}`,
-          },
-        ],
-      }),
+      images: [{ url: image, alt: post.coverAlt || title }],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      ...(image && {
-        images: [`${DATA.url}${image}`],
-      }),
+      images: [image],
     },
   };
 }
@@ -80,9 +68,9 @@ export default async function Blog({
   }>;
 }) {
   const { slug } = await params;
-  const sortedPosts = getSortedPosts();
+  const sortedPosts = posts;
   const currentIndex = sortedPosts.findIndex(
-    (p) => p._meta.path.replace(/\.mdx$/, "") === slug
+    (p) => p.slug === slug
   );
   const post = sortedPosts[currentIndex];
 
@@ -94,27 +82,30 @@ export default async function Blog({
   const nextPost = currentIndex < sortedPosts.length - 1 ? sortedPosts[currentIndex + 1] : null;
 
   const getSlug = (post: (typeof sortedPosts)[0]) =>
-    post._meta.path.replace(/\.mdx$/, "");
+    post.slug;
 
   const jsonLdContent = JSON.stringify({
     "@context": "https://schema.org",
     "@type": "BlogPosting",
     headline: post.title,
-    datePublished: post.publishedAt,
-    dateModified: post.publishedAt,
-    description: post.summary,
-    image: post.image
-      ? `${DATA.url}${post.image}`
-      : `${DATA.url}/blog/${slug}/opengraph-image`,
+    datePublished: post.date,
+    dateModified: post.updatedAt || post.date,
+    description: post.description,
+    image: new URL(post.cover || `/blog/${slug}/opengraph-image`, DATA.url).href,
     url: `${DATA.url}/blog/${slug}`,
     author: {
       "@type": "Person",
-      name: DATA.name,
+      name: post.author || DATA.name,
+      url: DATA.url,
     },
+    mainEntityOfPage: `${DATA.url}/blog/${slug}`,
+    articleSection: post.category,
+    keywords: post.tags.join(", "),
+    timeRequired: `PT${post.readingMinutes}M`,
   }).replace(/</g, "\\u003c");
 
   return (
-    <section id="blog">
+    <main id="blog" className="min-w-0">
       <script
         type="application/ld+json"
         suppressHydrationWarning
@@ -129,13 +120,34 @@ export default async function Blog({
         </Link>
       </div>
       <div className="flex flex-col gap-4">
-        <h1 className="title font-semibold text-3xl md:text-4xl tracking-tighter leading-tight">
+        <h1 className="title font-semibold text-3xl md:text-4xl tracking-tighter leading-tight wrap-anywhere">
           {post.title}
         </h1>
-        <p className="text-sm text-muted-foreground">
-          {formatDate(post.publishedAt)}
-        </p>
+        <p className="text-muted-foreground leading-relaxed wrap-anywhere">{post.description}</p>
+        <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground">
+          <span>{post.author || DATA.name}</span>
+          <time dateTime={post.date}>{formatDate(post.date)}</time>
+          <span>{post.readingMinutes} min read</span>
+          <span>{post.category}</span>
+          {post.updatedAt && post.updatedAt !== post.date && <span>Updated <time dateTime={post.updatedAt}>{formatDate(post.updatedAt)}</time></span>}
+        </div>
+        <div className="flex flex-wrap gap-1.5">{post.tags.map((tag) => <Badge key={tag} variant="secondary">{tag}</Badge>)}</div>
       </div>
+      {post.cover && <img src={post.cover} alt={post.coverAlt || post.title} className="mt-6 w-full h-auto rounded-xl border" />}
+      {post.toc.length > 0 && (
+        <details open className="mt-8 border border-border rounded-xl p-4 text-sm">
+          <summary className="cursor-pointer font-medium">On this page</summary>
+          <nav aria-label="Table of contents" className="mt-3">
+            <ul className="space-y-2">
+              {post.toc.map((heading) => (
+                <li key={heading.id} className={heading.depth === 3 ? "pl-4" : ""}>
+                  <a href={`#${heading.id}`} className="text-muted-foreground hover:text-foreground underline-offset-4 hover:underline wrap-anywhere">{heading.title}</a>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        </details>
+      )}
       <div className="my-6 flex w-full items-center">
         <div
           className="flex-1 h-px bg-border"
@@ -147,11 +159,11 @@ export default async function Blog({
           }}
         />
       </div>
-      <article className="prose max-w-full text-pretty font-sans leading-relaxed text-muted-foreground dark:prose-invert">
+      <article className="prose min-w-0 max-w-full text-pretty font-sans leading-relaxed text-foreground/90 dark:prose-invert wrap-anywhere">
         <MDXContent code={post.mdx} components={mdxComponents} />
       </article>
 
-      <nav className="mt-12 pt-8 max-w-2xl">
+      <nav aria-label="Adjacent articles" className="mt-12 pt-8 max-w-2xl">
         <div className="flex flex-col sm:flex-row justify-between gap-4">
           {previousPost ? (
             <Link
@@ -188,6 +200,6 @@ export default async function Blog({
           )}
         </div>
       </nav>
-    </section>
+    </main>
   );
 }

@@ -1,16 +1,18 @@
 {
-  "name": "porfolio",
+  "name": "actify-blog",
   "version": "0.1.0",
   "private": true,
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.9.0"
   },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "lint:fix": "eslint --fix"
+    "lint:fix": "eslint --fix",
+    "typecheck": "next typegen && tsc --noEmit",
+    "test:content": "node scripts/check-content.mjs"
   },
   "dependencies": {
     "@content-collections/mdx": "^0.2.2",

@@ -4,7 +4,7 @@ import { DATA } from "@/data/resume";
 
 export default function ContactSection() {
   return (
-    <div className="border rounded-xl p-10 relative">
+    <div className="border rounded-xl p-6 sm:p-10 relative">
       <div className="absolute -top-4 border bg-primary z-10 rounded-xl px-4 py-1 left-1/2 -translate-x-1/2">
         <span className="text-background text-sm font-medium">Contact</span>
       </div>
@@ -24,20 +24,17 @@ export default function ContactSection() {
           Get in Touch
         </h2>
         <p className="mx-auto max-w-lg text-muted-foreground text-balance">
-          Want to chat? Just shoot me a dm{" "}
-          <Link
-            href={DATA.contact.social.X.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-500 hover:underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm"
-          >
-            with a direct question on twitter
-          </Link>{" "}
-          and I&apos;ll respond whenever I can. I will ignore all
-          soliciting.
+          {DATA.contact.description}
         </p>
+        <div className="flex flex-wrap justify-center gap-4 text-sm">
+          {Object.values(DATA.contact.social).filter((social) => social.url).map((social) => (
+            <Link key={social.name} href={social.url} target={social.url.startsWith("http") ? "_blank" : undefined} rel={social.url.startsWith("http") ? "noopener noreferrer" : undefined} className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground underline underline-offset-4">
+              <social.icon className="size-4" />{social.name}
+            </Link>
+          ))}
+          <Link href="/blog" className="text-muted-foreground hover:text-foreground underline underline-offset-4">Read my notes</Link>
+        </div>
       </div>
     </div>
   );
 }
-

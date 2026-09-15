@@ -1,0 +1,74 @@
+---
+title: "Example: an MDX writing guide with code, images, quotes, and tables"
+description: "A sample article showing the writing features of this site. Replace it with your own notes when you are ready."
+date: "2026-09-11"
+tags: ["Example", "MDX", "Next.js"]
+category: "Development"
+cover: "/projects/actify-portfolio.png"
+coverAlt: "Actify portfolio homepage"
+---
+
+这是一篇**示例文章**，用来展示这个网站的排版与写作功能，不代表已经发布的个人经验。你可以直接替换这份文件的内容。
+
+## 从一份文件开始
+
+每篇文章放在 `content/` 目录中。文件名就是文章地址，例如 `mdx-writing-guide.mdx` 对应 `/blog/mdx-writing-guide`。
+
+文件顶部填写标题、摘要、日期、标签和分类。正文从二级标题开始，文章标题会由页面自动展示。目录和预计阅读时间会从正文生成。
+
+### Markdown 与 MDX
+
+普通文字可以使用 **粗体**、*斜体*、[站内链接](/blog) 和 `行内代码`。文件扩展名可以是 `.md` 或 `.mdx`；需要 JSX 组件时使用 MDX。
+
+> 写作先把问题讲清楚，再给出足够小、可以运行的例子。
+
+## 带标题的代码块
+
+在代码围栏后声明语言，使用 `title` 给代码块加上文件名。右上角的按钮只复制代码内容，保留换行和缩进。
+
+```ts title="project.ts"
+type Project = {
+  name: string;
+  featured: boolean;
+  status: "Building" | "Live" | "Archived";
+};
+
+const project: Project = {
+  name: "Actify Portfolio",
+  featured: true,
+  status: "Building",
+};
+
+console.log(project.name);
+```
+
+很长的代码行可以在代码框内横向滚动，正文保持适合阅读的宽度：
+
+```text
+This intentionally long line checks that code scrolls within its own container on a narrow phone screen without pushing the entire article outside the viewport.
+```
+
+## 图片与表格
+
+图片放入 `public/` 后可以使用根路径引用。下面使用普通 Markdown 图片语法，保留原图比例。
+
+![Actify 个人网站的首页预览](/projects/actify-portfolio.png)
+
+| 内容 | 写法 | 页面上的结果 |
+| --- | --- | --- |
+| 标题 | 二级、三级标题 | 自动加入文章目录 |
+| 代码 | 围栏加语言名称 | 语法高亮与复制按钮 |
+| 图片 | Markdown 图片语法 | 自适应宽度并保留比例 |
+| 表格 | GitHub Flavored Markdown | 窄屏下在表格内部横向滚动 |
+| 草稿 | `draft: true` | 不出现在列表、RSS 或文章路由中 |
+
+### 发布前
+
+- [ ] 换成真实文章的标题与内容
+- [ ] 检查文章日期、分类和标签
+- [ ] 给图片写有意义的替代文本
+- [ ] 在手机上检查代码与表格
+
+## 继续写下一篇
+
+复制一份文章，修改 frontmatter 与正文即可。开发服务会监听内容变化；发布环境需要重新构建。更多设置见仓库中的 README。
