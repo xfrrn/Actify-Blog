@@ -1,14 +1,15 @@
 import BlurFade from "@/components/magicui/blur-fade";
 import { ProjectCard } from "@/components/projects/project-card";
 import { getLanguage } from "@/lib/server-language";
+import { getProjects } from "@/lib/projects";
 import { Icons } from "@/components/icons/social";
 import Link from "next/link";
 
 const BLUR_FADE_DELAY = 0.04;
 
 export default async function ProjectsSection({ featuredOnly = true }: { featuredOnly?: boolean }) {
-    const { data: DATA, t } = await getLanguage();
-    const projects = featuredOnly ? DATA.projects.filter((project) => project.featured) : DATA.projects;
+    const { locale, t } = await getLanguage();
+    const projects = getProjects(locale, featuredOnly);
     const Heading = featuredOnly ? "h2" : "h1";
     return (
         <section id="projects">

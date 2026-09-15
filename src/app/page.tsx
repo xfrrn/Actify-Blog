@@ -12,7 +12,7 @@ import WorkSection from "@/components/home/work-section";
 import { ArrowUpRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Metadata } from "next";
-import { posts } from "@/lib/posts";
+import { getPosts } from "@/lib/posts";
 import { PostList } from "@/components/blog/post-list";
 import { formatDate } from "@/lib/utils";
 
@@ -28,6 +28,7 @@ const BLUR_FADE_DELAY = 0.04;
 
 export default async function Page() {
   const { data: DATA, t, locale } = await getLanguage();
+  const posts = getPosts(locale);
   return (
     <main className="min-h-dvh flex flex-col gap-14 relative">
       <section id="hero">

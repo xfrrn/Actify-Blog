@@ -1,0 +1,37 @@
+---
+# 英文配套模板：复制为 my-note.en.mdx，与 my-note.zh.mdx 对应。
+# 字段的完整中文说明见 blog-template.zh.mdx.example。
+# .mdx.example 文件不会显示；复制后也默认是草稿。
+title: "My first build note"
+description: "A one-sentence summary of this post."
+date: "2026-09-15"
+language: en
+# 分类名与中文版本相同，以保持筛选一致；分类由作者自由创建。
+category: "学习记录"
+tags: ["Notes"]
+# cover: "/blog/my-note.png"
+# coverAlt: "Describe what the cover image shows."
+# updatedAt: "2026-09-16"
+# author: "Actify"
+draft: true
+---
+
+This is a sample for copying, not a published account of personal experience. Replace it with your own notes.
+
+## What I built
+
+Write the English version here. The title and summary belong in the frontmatter above.
+
+## What I learned
+
+Use **bold text**, [links](https://example.com), images, lists, tables, and code blocks as needed.
+
+```ts title="example.ts"
+const message = "Hello";
+console.log(message);
+```
+
+## What's next
+
+- Describe what you plan to try next.
+- Replace the sample content and links before setting `draft: false`.

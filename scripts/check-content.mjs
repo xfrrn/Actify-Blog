@@ -5,7 +5,8 @@ import ts from "typescript";
 // Use the existing TypeScript compiler; no test runner or runtime dependency.
 async function loadSource(path) {
   const source = await readFile(new URL(path, import.meta.url), "utf8");
-  const code = ts.transpile(source, { module: ts.ModuleKind.ES2022, target: ts.ScriptTarget.ES2022 });
+  const code = ts.transpile(source, { module: ts.ModuleKind.ES2022, target: ts.ScriptTarget.ES2022 })
+    .replaceAll('from "content-collections"', `from ${JSON.stringify(new URL("../.content-collections/generated/index.js", import.meta.url).href)}`);
   return import(`data:text/javascript;base64,${Buffer.from(code).toString("base64")}`);
 }
 
@@ -78,7 +79,7 @@ for (const dictionary of Object.values(messages)) assert.ok(Object.values(dictio
 
 const { default: allPosts } = await loadSource("../.content-collections/generated/allPosts.js");
 const posts = allPosts.filter((post) => !post.draft);
-assert.equal(new Set(allPosts.map((post) => post.slug)).size, allPosts.length);
+assert.equal(new Set(allPosts.map((post) => `${post.slug}:${post.language}`)).size, allPosts.length);
 for (const post of posts) {
   assert.ok(post.title && post.description && post.date);
   assert.ok(post.category === undefined || typeof post.category === "string");
@@ -88,3 +89,51 @@ for (const post of posts) {
   if (post.cover?.startsWith("/")) await readFile(new URL(`../public${post.cover}`, import.meta.url));
 }
 console.log(`Content checks passed (${posts.length} published, ${allPosts.length - posts.length} drafts).`);
+
+const { allProjects } = await import("../.content-collections/generated/index.js");
+const { getProjects } = await loadSource("../src/lib/projects.ts");
+const originalOrder = allProjects.map((project) => project.slug);
+assert.ok(allPosts.every((post) => post._meta.directory === "."), "Blog files belong directly in content/blog/");
+for (const locale of ["en", "zh"]) {
+  const projects = getProjects(locale);
+  assert.equal(projects.length, allProjects.filter((project) => !project.draft).length);
+  assert.deepEqual(getProjects(locale, true), projects.filter((project) => project.featured));
+  for (const project of projects) {
+    assert.equal(project.description, allProjects.find((entry) => entry.slug === project.slug).description[locale]);
+    if (project.image?.startsWith("/")) await readFile(new URL(`../public${project.image}`, import.meta.url));
+  }
+}
+// Adding a record requires no import list; drafts remain hidden, even if featured.
+const example = { slug: "test-new-project", name: "Test", description: { en: "English", zh: "中文" }, featured: true, draft: false, order: -1000 };
+allProjects.push(example, { ...example, slug: "test-hidden-project", draft: true, order: -2000 });
+assert.equal(getProjects("en")[0].slug, example.slug);
+assert.equal(getProjects("zh", true)[0].description, "中文");
+assert.ok(!getProjects("en").some((project) => project.slug === "test-hidden-project"));
+allProjects.splice(-2);
+assert.deepEqual(allProjects.map((project) => project.slug), originalOrder, "Sorting must not mutate generated data");
+console.log(`Project checks passed (${allProjects.length} project files).`);
+
+const { parsePostFilename, selectPostTranslations } = await loadSource("../src/lib/blog-language.ts");
+assert.deepEqual(parsePostFilename("my-note.en.mdx"), { slug: "my-note", language: "en" });
+assert.deepEqual(parsePostFilename("my-note.zh.md"), { slug: "my-note", language: "zh" });
+assert.deepEqual(parsePostFilename("old-note.md"), { slug: "old-note", language: "zh" });
+assert.deepEqual(parsePostFilename("old-note", "en"), { slug: "old-note", language: "en" });
+for (const path of ["folder/note.en", "bad.name", "UPPER", "note.fr", "note.en.mdx.example"]) assert.throws(() => parsePostFilename(path));
+assert.throws(() => parsePostFilename("note.en", "zh"));
+const bilingual = [
+  { slug: "paired", language: "zh", draft: false, date: "2026-09-15", title: "中文标题", mdx: "中文正文", toc: ["中文目录"] },
+  { slug: "paired", language: "en", draft: false, date: "2026-09-15", title: "English title", mdx: "English body", toc: ["English TOC"] },
+  { slug: "only-zh", language: "zh", draft: false, date: "2026-09-14", title: "只有中文" },
+  { slug: "only-zh", language: "en", draft: true, date: "2026-09-14", title: "Unpublished translation" },
+  { slug: "only-en", language: "en", draft: false, date: "2026-09-13", title: "Only English" },
+  { slug: "hidden", language: "zh", draft: true, date: "2026-09-16", title: "Hidden" },
+];
+for (const locale of ["en", "zh"]) {
+  const selected = selectPostTranslations(bilingual, locale);
+  assert.equal(selected.length, 3, "Translations count as a single article; drafts stay hidden");
+  assert.equal(selected[0], bilingual.find((post) => post.slug === "paired" && post.language === locale), "Select title, body and TOC together");
+  assert.equal(selected[1].language, "zh", "A draft translation cannot replace its published original");
+  assert.equal(selected[2].language, "en", "Fall back to the available language");
+  assert.deepEqual(selectPostTranslations([...bilingual].reverse(), locale), selected, "File discovery order must not affect language selection");
+}
+console.log("Bilingual post checks passed (pairing, fallback, drafts, unique lists).");

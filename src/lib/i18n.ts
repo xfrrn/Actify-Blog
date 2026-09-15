@@ -3,12 +3,14 @@ export const languageCookie = "site-language";
 export const normalizeLocale = (value?: string): Locale => value === "zh" ? "zh" : "en";
 
 const en = {
+  originalZh: "English translation not available yet. Showing the Chinese version.",
+  originalEn: "Chinese translation not available yet. Showing the English version.",
   home: "Home", projects: "Projects", blog: "Blog", hello: "Hi, I'm", about: "About me",
   now: "What I'm working on", updated: "Updated", writing: "Latest writing", allPosts: "All posts",
   noPosts: "No posts yet. I'll share notes from my learning, life, and work here.",
   contact: "Contact", chat: "Let's talk", readNotes: "Read my notes",
   featured: "Selected projects", allProjects: "All projects", tools: "Tools I've built",
-  projectsDescription: "PDF translation, GitHub star organization, audio and video notes, and this personal website.",
+  projectsDescription: "A collection of tools and personal projects I've built.",
   noProjects: "No public projects yet.", viewProjects: "View all projects", view: "View",
   cover: "text cover", building: "Building", live: "Live", archived: "Archived", demo: "Visit site",
   category: "Category", categories: "Post categories", clear: "Clear filter", posts: "posts", minRead: "min read",
@@ -22,12 +24,14 @@ const en = {
   copy: "Copy code", copied: "Code copied", copyError: "Copy failed. Select the code and copy it manually.", code: "Code block", table: "Scrollable table",
 };
 const zh: typeof en = {
+  originalZh: "暂无英文译文，当前显示中文原文。",
+  originalEn: "暂无中文译文，当前显示英文原文。",
   home: "首页", projects: "作品", blog: "博客", hello: "你好，我是", about: "关于我",
   now: "最近在做什么", updated: "更新于", writing: "最近的记录", allPosts: "全部文章",
   noPosts: "还没有发布文章。这里会记录学习、生活和工作中的具体经历。",
   contact: "联系我", chat: "来聊聊", readNotes: "读读我的记录",
   featured: "部分作品", allProjects: "全部作品", tools: "我做的小工具",
-  projectsDescription: "PDF 划词翻译、GitHub 收藏整理、音视频笔记，以及这个个人网站。",
+  projectsDescription: "做过的小工具和个人项目，持续更新中。",
   noProjects: "暂时没有公开展示的作品。", viewProjects: "查看全部作品", view: "查看",
   cover: "文字封面", building: "开发中", live: "已上线", archived: "已归档", demo: "访问网站",
   category: "分类", categories: "文章分类", clear: "清除筛选", posts: "篇文章", minRead: "分钟阅读",

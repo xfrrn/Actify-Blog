@@ -1,9 +1,14 @@
 import { allPosts } from "content-collections";
+import { selectPostTranslations } from "./blog-language";
+import type { Locale } from "./i18n";
 
-export const posts = allPosts
-  .filter((post) => !post.draft)
-  .sort((a, b) => b.date.localeCompare(a.date) || a.slug.localeCompare(b.slug));
+export function getPosts(locale: Locale = "en") {
+  return selectPostTranslations(allPosts, locale);
+}
 
-export function getPost(slug: string) {
-  return posts.find((post) => post.slug === slug);
+// Public feeds and the sitemap use one entry per article, preferring English.
+export const posts = getPosts();
+
+export function getPost(slug: string, locale: Locale = "en") {
+  return getPosts(locale).find((post) => post.slug === slug);
 }

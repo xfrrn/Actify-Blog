@@ -11,24 +11,24 @@ category: "Development"
 
 ## 一份项目资料
 
-首页与项目汇总页读取同一份 `src/data/site.tsx`。修改项目名称或技术栈时，两处展示会一起更新。
+每个作品单独放在 `content/projects/` 下的 Markdown 文件中，首页与项目汇总页读取同一份资料。新增文件就会自动收录，修改内容后两处展示一起更新。
 
-```ts title="site.tsx"
-{
-  name: "Actify Portfolio",
-  slug: "actify-portfolio",
-  description: "A personal site for projects and development notes.",
-  dates: "September 2026 — Present",
-  technologies: ["Next.js", "TypeScript", "MDX"],
-  demo: "/",
-  status: "Building",
-  featured: true,
-}
+```yaml title="content/projects/my-tool.md"
+---
+name: "My Tool"
+description:
+  en: "A short English introduction."
+  zh: "一个小工具的中文简介。"
+technologies: ["TypeScript"]
+featured: true
+order: 50
+draft: true
+---
 ```
 
 ## 首页只保留精选
 
-`featured: true` 的项目会出现在首页。`/projects` 展示全部项目，并复用同一张项目卡片。图片、状态、GitHub 与 Demo 都属于项目数据。
+`featured: true` 的项目会出现在首页。`/projects` 展示全部非草稿项目，并复用同一张项目卡片。图片、状态、GitHub 与 Demo 都属于项目数据。
 
 没有公开源码的项目可以不填 GitHub 链接。组件只展示已经填写的有效入口，避免出现无法访问的占位链接。
 

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { posts } from "@/lib/posts";
+import { getPosts } from "@/lib/posts";
 import { filterArchivePosts, getArchiveCategories, groupArchivePosts } from "@/lib/blog-archive";
 import { ArchiveTimeline } from "@/components/blog/archive-timeline";
 import { PostList } from "@/components/blog/post-list";
@@ -27,6 +27,7 @@ export default async function BlogPage({ searchParams }: { searchParams: BlogSea
   const { data: DATA, t, locale } = await getLanguage();
   const params = await searchParams;
   const category = first(params.category);
+  const posts = getPosts(locale);
   const filtered = filterArchivePosts(posts, category);
   // ponytail: render the whole archive; split by year if its size slows the initial load.
   const groups = groupArchivePosts(filtered, locale);

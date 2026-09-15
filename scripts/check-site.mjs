@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
 import allPosts from "../.content-collections/generated/allPosts.js";
+import allProjects from "../.content-collections/generated/allProjects.js";
 
 // Run against a running production server: node scripts/check-site.mjs http://localhost:3000
 const origin = process.argv[2] || "http://localhost:3000";
-const posts = allPosts.filter((post) => !post.draft).map((post) => `/blog/${post.slug}`);
-const drafts = allPosts.filter((post) => post.draft).map((post) => `/blog/${post.slug}`);
+const posts = [...new Set(allPosts.filter((post) => !post.draft).map((post) => `/blog/${post.slug}`))];
+const drafts = [...new Set(allPosts.filter((post) => post.draft).map((post) => `/blog/${post.slug}`))].filter((path) => !posts.includes(path));
 
 for (const path of ["/", "/projects", "/blog", "/blog?category=missing", ...posts, "/rss.xml", "/sitemap.xml", "/robots.txt"]) {
   const response = await fetch(new URL(path, origin));
@@ -13,12 +14,14 @@ for (const path of ["/", "/projects", "/blog", "/blog?category=missing", ...post
   assert.ok(body.length > 0, path);
   for (const draft of drafts) assert.ok(!body.includes(draft), `${path} must not list ${draft}`);
   if (path === "/" || path === "/projects") {
-    assert.ok(body.includes("PDF Selection Translator"), `${path}: featured plugin`);
-    assert.ok(body.includes("https://github.com/xfrrn/obsidian-pdf-selection-translator"), `${path}: plugin link`);
+    const visible = allProjects.filter((project) => !project.draft && (path === "/projects" || project.featured));
+    assert.equal((body.match(/<div[^>]*data-project-cover=/g) || []).length, visible.length, `${path}: every visible project has a cover`);
+    for (const project of allProjects) {
+      assert.equal(body.includes(`id="${project.slug}"`), visible.includes(project), `${path}: project visibility ${project.slug}`);
+    }
     assert.doesNotMatch(body, /<time[^>]*>\s*<\/time>/, `${path}: no empty project dates`);
   }
   if (path === "/projects") {
-    assert.equal((body.match(/<div[^>]*data-project-cover=/g) || []).length, 4, "Every project has a cover");
     assert.ok(!body.includes("/blog?project="), "Projects do not define blog categories");
   }
   if (path.startsWith("/blog?")) {

@@ -7,20 +7,6 @@ import type { Locale } from "@/lib/i18n";
 const github = "https://github.com/xfrrn";
 const email = "actify_top@foxmail.com";
 
-export type Project = {
-  name: string;
-  slug: string;
-  description: string;
-  dates?: string;
-  technologies: readonly string[];
-  image?: string;
-  video?: string;
-  github?: string;
-  demo?: string;
-  status?: "Building" | "Live" | "Archived";
-  featured: boolean;
-};
-
 const chineseData = {
   name: "Actify",
   initials: "A",
@@ -62,57 +48,11 @@ const chineseData = {
   education: [] as {
     school: string; href: string; degree: string; logoUrl: string; start: string; end: string;
   }[],
-  projects: [
-    // Descriptions and stacks are based on the linked public repositories.
-    // Omit dates and release status until confirmed by the author.
-    {
-      name: "PDF Selection Translator",
-      slug: "obsidian-pdf-selection-translator",
-      description: "在 Obsidian 中阅读 PDF 时，选中单词或段落即可翻译。兼容内置 PDF 阅读器和 PDF++，支持自定义 OpenAI 兼容接口与模型。适用于桌面端带有可选文字的 PDF。",
-      technologies: ["TypeScript", "Obsidian API", "CSS"],
-      github: "https://github.com/xfrrn/obsidian-pdf-selection-translator",
-      featured: true,
-    },
-    {
-      name: "StarMind",
-      slug: "starmind",
-      description: "用自然语言搜索 GitHub 上收藏的仓库，借助 AI 生成标签和摘要，整理自己的 Star 列表。",
-      technologies: ["React", "TypeScript", "Python", "FastAPI", "PostgreSQL", "pgvector"],
-      github: "https://github.com/xfrrn/StarMind",
-      featured: true,
-    },
-    {
-      name: "Audigest",
-      slug: "audigest",
-      description: "把视频和播客里的内容转成文字，再整理成摘要与笔记。结合语音转录和大模型处理音视频内容。",
-      technologies: ["Python", "FastAPI", "SQLModel", "FunASR", "OpenAI SDK"],
-      github: "https://github.com/xfrrn/Audigest",
-      featured: false,
-    },
-    {
-      name: "Actify Portfolio",
-      slug: "actify-portfolio",
-      description: "你正在看的个人网站，基于 Magic UI Portfolio 模板修改。用来记录学习、生活和工作，写博客，也展示自己做过的东西。",
-      technologies: ["Next.js", "TypeScript", "Tailwind CSS", "Magic UI", "MDX"],
-      image: "/projects/actify-portfolio.png",
-      github: "https://github.com/xfrrn/Actify-Blog",
-      demo: "/",
-      status: "Building",
-      featured: false,
-    },
-  ] satisfies Project[] as Project[],
   hackathons: [] as {
     title: string; dates: string; location: string; description: string; image: string;
     links: { title: string; href: string; icon: ReactNode }[];
   }[],
 } as const;
-
-const englishProjectDescriptions: Record<string, string> = {
-  "obsidian-pdf-selection-translator": "Translate selected words or paragraphs while reading PDFs in Obsidian. Works with the built-in PDF viewer and PDF++, with custom OpenAI-compatible endpoints and models. For desktop PDFs with selectable text.",
-  "starmind": "Search your starred GitHub repositories in natural language. Use AI-generated tags and summaries to organize your collection.",
-  "audigest": "Turn videos and podcasts into transcripts, summaries, and notes using speech recognition and language models.",
-  "actify-portfolio": "The website you're visiting, adapted from the Magic UI Portfolio template. A place to document learning, life, and work, publish posts, and share projects.",
-};
 
 export const DATA = {
   ...chineseData,
@@ -130,10 +70,6 @@ export const DATA = {
   blog: { description: "Notes on learning, everyday life, building tools, writing papers, and practicing global SEO." },
   navbar: chineseData.navbar.map((item) => ({ ...item, label: ({ "/": "Home", "/projects": "Projects", "/blog": "Blog" })[item.href] })),
   contact: { ...chineseData.contact, description: "If you're building tools, writing papers, exploring global markets, or just want to talk about learning and life, get in touch." },
-  projects: chineseData.projects.map((project) => ({
-    ...project,
-    description: englishProjectDescriptions[project.slug] ?? project.description,
-  })),
 };
 
 export function getSiteData(locale: Locale) {

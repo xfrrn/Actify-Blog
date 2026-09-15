@@ -1,6 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 import { getLanguage } from "@/lib/server-language";
-import { posts, getPost } from "@/lib/posts";
+import { getPosts, getPost } from "@/lib/posts";
 import { formatDate } from "@/lib/utils";
 import { DATA } from "@/data/site";
 import type { Metadata } from "next";
@@ -19,7 +19,8 @@ export async function generateMetadata({
   }>;
 }): Promise<Metadata | undefined> {
   const { slug } = await params;
-  const post = getPost(slug);
+  const { locale } = await getLanguage();
+  const post = getPost(slug, locale);
 
   if (!post) {
     return undefined;
@@ -38,6 +39,7 @@ export async function generateMetadata({
       title,
       description,
       type: "article",
+      locale: post.language === "zh" ? "zh_CN" : "en_US",
       publishedTime: new Date(post.date).toISOString(),
       modifiedTime: new Date(post.updatedAt || post.date).toISOString(),
       authors: [post.author || DATA.name],
@@ -64,7 +66,7 @@ export default async function Blog({
 }) {
   const { t, locale } = await getLanguage();
   const { slug } = await params;
-  const sortedPosts = posts;
+  const sortedPosts = getPosts(locale);
   const currentIndex = sortedPosts.findIndex(
     (p) => p.slug === slug
   );
@@ -84,6 +86,7 @@ export default async function Blog({
     "@context": "https://schema.org",
     "@type": "BlogPosting",
     headline: post.title,
+    inLanguage: post.language === "zh" ? "zh-CN" : "en",
     datePublished: post.date,
     dateModified: post.updatedAt || post.date,
     description: post.description,
@@ -116,10 +119,11 @@ export default async function Blog({
         </Link>
       </div>
       <div className="flex flex-col gap-4">
-        <h1 className="title font-semibold text-3xl md:text-4xl tracking-tighter leading-tight wrap-anywhere">
+        {post.language !== locale && <p className="text-sm text-muted-foreground">{post.language === "zh" ? t.originalZh : t.originalEn}</p>}
+        <h1 lang={post.language} className="title font-semibold text-3xl md:text-4xl tracking-tighter leading-tight wrap-anywhere">
           {post.title}
         </h1>
-        <p className="text-muted-foreground leading-relaxed wrap-anywhere">{post.description}</p>
+        <p lang={post.language} className="text-muted-foreground leading-relaxed wrap-anywhere">{post.description}</p>
         <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground">
           <span>{post.author || DATA.name}</span>
           <time dateTime={post.date}>{formatDate(post.date, locale)}</time>
@@ -155,7 +159,7 @@ export default async function Blog({
           }}
         />
       </div>
-      <article className="prose min-w-0 max-w-full text-pretty font-sans leading-relaxed text-foreground/90 dark:prose-invert wrap-anywhere">
+      <article lang={post.language} className="prose min-w-0 max-w-full text-pretty font-sans leading-relaxed text-foreground/90 dark:prose-invert wrap-anywhere">
         <MDXContent code={post.mdx} components={mdxComponents} />
       </article>
 

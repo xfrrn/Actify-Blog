@@ -20,6 +20,7 @@ export function PostList({ posts, startIndex = 0, numbered = true, locale = "en"
               <h3 className="text-lg font-medium tracking-tight wrap-anywhere">{post.title}<ChevronRight className="ml-1 inline-block size-4 text-muted-foreground opacity-0 -translate-x-2 transition-all duration-200 group-hover:opacity-100 group-hover:translate-x-0" aria-hidden /></h3>
               <p className="text-sm leading-relaxed text-muted-foreground wrap-anywhere">{post.description}</p>
               <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                {post.language !== locale && <span>{post.language === "zh" ? t.originalZh : t.originalEn}</span>}
                 <time dateTime={post.date}>{formatDate(post.date, locale)}</time>
                 <span>{post.readingMinutes} {t.minRead}</span>
                 {post.category && <span>{post.category}</span>}

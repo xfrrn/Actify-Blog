@@ -11,19 +11,35 @@ Actify 的个人网站与技术博客，基于 Next.js、React、Tailwind CSS �
 ## 中英文界面
 
 - 默认显示英文，底部导航栏的「中文 / EN」按钮可切换语言，浏览器会记住选择一年。
-- 首页介绍、近况、作品描述位于 `src/data/site.tsx`；界面提示文字位于 `src/lib/i18n.ts`。
+- 首页介绍、近况位于 `src/data/site.tsx`；作品位于 `content/projects/`；界面提示文字位于 `src/lib/i18n.ts`。
 - 页面在服务端读取语言 Cookie，同一个链接可以显示两种语言。切换会刷新当前页面，保留分类筛选与地址。
-- 文章正文、标题、标签和自定义分类保留作者原文，不会自动翻译。现有示例仍是草稿。
+- 博客文章支持独立的中英文文件：有译文时标题、摘要、正文、目录一起切换；缺少已发布译文时显示另一个语言版本并提示。译文由作者填写，不会自动翻译。现有示例仍是草稿。
 
 ## 写博客与分类
 
-文章放在 `content/`，使用 `.md` 或 `.mdx`。文件头示例（下面是填写格式，不是已发布文章）：
+文章统一放在 `content/blog/`，作品放在 `content/projects/`。博客使用 `.md` 或 `.mdx`，文件名示例：
+
+```text
+content/
+  blog/
+    my-note.zh.mdx     # 中文标题、摘要和正文
+    my-note.en.mdx     # 同篇文章的英文版本
+  projects/
+    my-tool.md         # 项目资料
+```
+
+`my-note.zh.mdx` 和 `my-note.en.mdx` 共用 `/blog/my-note`，列表、计数、RSS 和站点地图只算一篇。只写一种语言也可以，另一种语言界面会回退显示它。两份文件的 `draft` 分别控制发布，草稿译文不会被读取展示。
+
+新建时复制 [中文完整字段模板](content/blog/blog-template.zh.mdx.example) 和 [英文配套模板](content/blog/blog-template.en.mdx.example)，移除 `.example` 并修改文件名。模板本身不会被网站读取，复制后的文章也默认是草稿。
+
+文件头示例（正文写在第二条 `---` 之后）：
 
 ```yaml
 ---
 title: "填写文章标题"
 description: "填写一句摘要"
 date: "2026-09-15"
+language: zh
 category: "你自己起的分类名"
 tags: ["Obsidian", "翻译"]
 draft: true
@@ -31,11 +47,45 @@ draft: true
 ```
 
 - `category` 由你自由命名。发布文章后，新名称会自动成为可选分类，同名分类会合并并统计文章数。
+- 两种语言建议使用相同的 `date` 和 `category`，保持时间排序和分类筛选一致；标题、摘要、正文、标签、封面说明可以分别填写。
+- 文件后缀 `.zh` / `.en` 决定语言，`language` 可省略；若填写，必须与后缀一致。同一篇文章每种语言只能有一份文件，不能同时有 `my-note.zh.md` 和 `my-note.zh.mdx`。
+- 旧式无语言后缀文件仍支持，默认中文，也可通过 `language: en` 声明英文；文件夹迁移和语言后缀不改变原文章地址。
+- RSS 使用已发布英文版，没有英文则使用中文版；站点地图按文章地址去重。
 - 不预设分类，也不关联项目。可以省略 `category` 或留空，文章仍显示在「全部文章」中。
 - 分类下拉框只显示已发布文章中使用的分类，选择后直接筛选；修改文章中的名称即可调整分类。
 - 文章按日期倒序、按月份分组；左侧时间导航跟随滚动高亮，手机上显示为顶部横向导航。
 - 准备发布时再将 `draft` 改为 `false`。草稿不会出现在文章列表、筛选计数、时间线、RSS 或站点地图中。
-- 项目封面统一为 16:9；缺少图片或加载失败时显示项目名称文字封面。
+
+## 添加与修改作品
+
+每个作品是 `content/projects/` 中的一个 `.md` 文件。复制现有文件、修改内容即可，无需修改 `site.tsx` 或手动添加导入。
+
+**新建时推荐复制 [完整字段模板](content/projects/project-template.md.example)**：内含所有字段的中文说明、默认值和填写示例。复制后改名为 `my-tool.md`。模板的 `.md.example` 后缀不会被网站读取；复制后的项目也默认是草稿，填完再将 `draft` 改为 `false`。
+
+例如新建 `content/projects/my-tool.md`，填写文件头：
+
+```yaml
+---
+name: "My Tool"
+description:
+  en: "A short English introduction."
+  zh: "这个工具的中文简介。"
+technologies: ["TypeScript"]
+featured: true
+order: 50
+draft: true
+---
+```
+
+- 文件名是项目的唯一标识（`slug`），使用小写英文、数字和连字符，例如 `my-tool.md`。
+- `name` 和中英文 `description` 必填，中英文简介在同一个文件里维护。
+- `featured: true` 在首页展示；全部非草稿作品都会出现在 `/projects`。
+- `order` 越小越靠前，未填写时为 `100`；同序号按文件名排序。
+- `draft: true` 隐藏项目；准备公开时改为 `false`。省略时默认为 `false`。
+- 可选字段：`github`、`demo`、`image`、`video`、`dates`、`status`；没有就省略。`status` 可填 `Building`、`Live` 或 `Archived`。
+- 图片放在 `public/projects/`，例如 `image: "/projects/my-tool.png"`。封面统一为 16:9；缺少图片或加载失败时显示项目名称文字封面。
+- 项目目前以卡片展示，简介写在 `description` 中，文件正文不会生成详情页。
+- `pnpm dev` 会自动读取新增文件；使用 `8787` 预览或部署时，需要重新构建。
 
 ## 部署到 Cloudflare Workers
 

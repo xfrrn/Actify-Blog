@@ -3,11 +3,12 @@ import { compileMDX } from "@content-collections/mdx";
 import remarkGfm from "remark-gfm";
 import { z } from "zod";
 import { remarkCodeMeta, type PostContentMetadata } from "./src/lib/remark-code-meta";
+import { parsePostFilename } from "./src/lib/blog-language";
 
 const posts = defineCollection({
   name: "posts",
-  directory: "content",
-  include: "**/*.{md,mdx}",
+  directory: "content/blog",
+  include: "*.{md,mdx}",
   schema: z.object({
     title: z.string().min(1),
     description: z.string().min(1).optional(),
@@ -19,6 +20,7 @@ const posts = defineCollection({
     draft: z.boolean().default(false),
     updatedAt: z.iso.date().optional(),
     author: z.string().optional(),
+    language: z.enum(["en", "zh"]).optional(),
     // Keep the original template's frontmatter valid.
     publishedAt: z.iso.date().optional(),
     summary: z.string().min(1).optional(),
@@ -27,8 +29,7 @@ const posts = defineCollection({
   }).refine((post) => post.date || post.publishedAt, "Add date (YYYY-MM-DD)")
     .refine((post) => post.description || post.summary, "Add description"),
   transform: async (document, context) => {
-    const slug = document._meta.path.replace(/\.(md|mdx)$/, "");
-    z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Use a lowercase, hyphenated filename directly in content/").parse(slug);
+    const { slug, language } = parsePostFilename(document._meta.path, document.language);
     const compiled = await context.cache(document, async (document) => {
       const metadata: PostContentMetadata = { toc: [], readingMinutes: 1 };
       // Cache MDX and its derived metadata together, including on subsequent builds.
@@ -43,16 +44,43 @@ const posts = defineCollection({
       ...document,
       ...compiled,
       slug,
+      language,
       date: (document.date ?? document.publishedAt)!,
       description: (document.description ?? document.summary)!,
       cover: document.cover ?? document.image,
     };
   },
   onSuccess: (posts) => {
-    if (new Set(posts.map((post) => post.slug)).size !== posts.length) {
-      throw new Error("Blog filenames must have unique slugs across .md and .mdx files.");
+    if (new Set(posts.map((post) => `${post.slug}:${post.language}`)).size !== posts.length) {
+      throw new Error("Each blog slug can have only one file per language, across .md and .mdx files.");
     }
   },
 });
 
-export default defineConfig({ collections: [posts] });
+const projects = defineCollection({
+  name: "projects",
+  directory: "content/projects",
+  include: "*.md",
+  schema: z.object({
+    name: z.string().min(1),
+    description: z.object({ en: z.string().min(1), zh: z.string().min(1) }),
+    technologies: z.array(z.string().min(1)).default([]),
+    dates: z.string().optional(),
+    image: z.string().optional(),
+    video: z.string().optional(),
+    github: z.string().optional(),
+    demo: z.string().optional(),
+    status: z.enum(["Building", "Live", "Archived"]).optional(),
+    featured: z.boolean().default(false),
+    draft: z.boolean().default(false),
+    order: z.number().int().default(100),
+    content: z.string(),
+  }),
+  transform: (document) => ({
+    ...document,
+    slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Use a lowercase, hyphenated project filename")
+      .parse(document._meta.path.replace(/\.md$/, "")),
+  }),
+});
+
+export default defineConfig({ collections: [posts, projects] });
