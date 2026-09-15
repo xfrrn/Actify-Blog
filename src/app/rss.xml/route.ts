@@ -1,4 +1,4 @@
-import { DATA } from "@/data/resume";
+import { DATA } from "@/data/site";
 import { posts } from "@/lib/posts";
 
 export const dynamic = "force-static";

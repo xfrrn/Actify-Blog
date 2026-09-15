@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 import { posts, getPost } from "@/lib/posts";
 import { formatDate } from "@/lib/utils";
-import { DATA } from "@/data/resume";
+import { DATA } from "@/data/site";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { MDXContent } from "@content-collections/mdx/react";

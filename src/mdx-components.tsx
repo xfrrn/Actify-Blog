@@ -1,6 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
-import { CodeBlock } from "@/components/mdx/code-block";
-import { MediaContainer } from "@/components/mdx/media-container";
+import { CodeBlock } from "@/components/blog/code-block";
+import { MediaContainer } from "@/components/blog/media-container";
 import type { ComponentProps } from "react";
 
 type CodeProps = ComponentProps<"code"> & {

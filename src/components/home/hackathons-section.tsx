@@ -1,8 +1,8 @@
 /* eslint-disable @next/next/no-img-element */
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { DATA } from "@/data/resume";
-import { Timeline, TimelineItem, TimelineConnectItem } from "@/components/timeline";
+import { DATA } from "@/data/site";
+import { Timeline, TimelineItem, TimelineConnectItem } from "@/components/home/timeline";
 
 export default function HackathonsSection() {
   return (

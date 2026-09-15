@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import BlurFade from "@/components/magicui/blur-fade";
-import ProjectsSection from "@/components/section/projects-section";
-import { DATA } from "@/data/resume";
+import ProjectsSection from "@/components/projects/projects-section";
+import { DATA } from "@/data/site";
 
 export const metadata: Metadata = {
   title: "Projects",

@@ -2,19 +2,19 @@
 import BlurFade from "@/components/magicui/blur-fade";
 import BlurFadeText from "@/components/magicui/blur-fade-text";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { DATA } from "@/data/resume";
+import { DATA } from "@/data/site";
 import Link from "next/link";
 import Markdown from "react-markdown";
-import ContactSection from "@/components/section/contact-section";
-import HackathonsSection from "@/components/section/hackathons-section";
-import ProjectsSection from "@/components/section/projects-section";
-import WorkSection from "@/components/section/work-section";
+import ContactSection from "@/components/home/contact-section";
+import HackathonsSection from "@/components/home/hackathons-section";
+import ProjectsSection from "@/components/projects/projects-section";
+import WorkSection from "@/components/home/work-section";
 import { ArrowUpRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Metadata } from "next";
 import { posts } from "@/lib/posts";
-import { PostList } from "@/components/post-list";
+import { PostList } from "@/components/blog/post-list";
 
 export const metadata: Metadata = {
   title: { absolute: `${DATA.name} — ${DATA.roles.join(" / ")}` },

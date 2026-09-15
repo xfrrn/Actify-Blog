@@ -3,8 +3,8 @@ import { posts } from "@/lib/posts";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { paginate, normalizePage } from "@/lib/pagination";
-import { PostList } from "@/components/post-list";
-import { DATA } from "@/data/resume";
+import { PostList } from "@/components/blog/post-list";
+import { DATA } from "@/data/site";
 
 const blogMetadata: Metadata = {
   title: "Blog",

@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { DATA } from "@/data/resume";
+import { DATA } from "@/data/site";
 
 export default function robots(): MetadataRoute.Robots {
   return {

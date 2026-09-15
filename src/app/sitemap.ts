@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { DATA } from "@/data/resume";
+import { DATA } from "@/data/site";
 import { posts } from "@/lib/posts";
 
 export default function sitemap(): MetadataRoute.Sitemap {

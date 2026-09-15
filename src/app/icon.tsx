@@ -1,5 +1,5 @@
 import { ImageResponse } from "next/og";
-import { DATA } from "@/data/resume";
+import { DATA } from "@/data/site";
 
 export const size = { width: 64, height: 64 };
 export const contentType = "image/png";

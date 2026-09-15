@@ -1,7 +1,7 @@
 import BlurFade from "@/components/magicui/blur-fade";
-import { ProjectCard } from "@/components/project-card";
-import { DATA } from "@/data/resume";
-import { Icons } from "@/components/icons";
+import { ProjectCard } from "@/components/projects/project-card";
+import { DATA } from "@/data/site";
+import { Icons } from "@/components/icons/social";
 import Link from "next/link";
 
 const BLUR_FADE_DELAY = 0.04;

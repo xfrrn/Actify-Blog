@@ -1,9 +1,9 @@
-import { Icons } from "@/components/icons";
+import { Icons } from "@/components/icons/social";
 import { HomeIcon, FolderGit2, NotebookIcon, Hammer, BookOpen, Compass } from "lucide-react";
-import { ReactLight } from "@/components/ui/svgs/reactLight";
-import { NextjsIconDark } from "@/components/ui/svgs/nextjsIconDark";
-import { Typescript } from "@/components/ui/svgs/typescript";
-import { Nodejs } from "@/components/ui/svgs/nodejs";
+import { ReactLight } from "@/components/icons/react";
+import { NextjsIconDark } from "@/components/icons/nextjs";
+import { Typescript } from "@/components/icons/typescript";
+import { Nodejs } from "@/components/icons/nodejs";
 import type { ReactNode } from "react";
 
 // Fill in your public contact details here. Empty links are not rendered.
