@@ -25,6 +25,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const { data: DATA, locale } = await getLanguage();
   return {
     metadataBase: new URL(DATA.url),
+    verification: { google: process.env.GOOGLE_SITE_VERIFICATION || undefined },
     title: {
       default: DATA.name,
       template: `%s | ${DATA.name}`,
@@ -53,6 +54,7 @@ export async function generateMetadata(): Promise<Metadata> {
     },
     twitter: {
       title: `${DATA.name}`,
+      description: DATA.description,
       card: "summary_large_image",
     },
   };

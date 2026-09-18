@@ -4,7 +4,7 @@ import ProjectsSection from "@/components/projects/projects-section";
 import { getLanguage } from "@/lib/server-language";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const { data: DATA, t } = await getLanguage();
+  const { data: DATA, t, locale } = await getLanguage();
   return {
     title: t.projects,
     description: t.projectsDescription,
@@ -13,7 +13,12 @@ export async function generateMetadata(): Promise<Metadata> {
       title: `${t.projects} | ${DATA.name}`,
       description: t.projectsDescription,
       url: "/projects",
+      type: "website",
+      siteName: DATA.name,
+      locale: locale === "zh" ? "zh_CN" : "en_US",
+      images: [{ url: "/opengraph-image", alt: DATA.name }],
     },
+    twitter: { card: "summary_large_image", title: `${t.projects} | ${DATA.name}`, description: t.projectsDescription, images: ["/opengraph-image"] },
   };
 }
 

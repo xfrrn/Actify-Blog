@@ -17,13 +17,13 @@ export async function generateMetadata({
   params: Promise<{
     slug: string;
   }>;
-}): Promise<Metadata | undefined> {
+}): Promise<Metadata> {
   const { slug } = await params;
   const { locale } = await getLanguage();
   const post = getPost(slug, locale);
 
   if (!post) {
-    return undefined;
+    notFound();
   }
 
   const { title, description } = post;
@@ -33,7 +33,6 @@ export async function generateMetadata({
     title,
     description,
     authors: [{ name: post.author || DATA.name, url: DATA.url }],
-    keywords: post.tags,
     alternates: { canonical: `/blog/${slug}`, types: { "application/rss+xml": `${DATA.url}/rss.xml` } },
     openGraph: {
       title,

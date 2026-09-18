@@ -38,6 +38,7 @@ function ProjectImage({ src, alt }: { src?: string; alt: string }) {
 
 interface Props {
   title: string;
+  headingLevel?: "h2" | "h3";
   slug?: string;
   status?: string;
   href?: string;
@@ -56,6 +57,7 @@ interface Props {
 
 export function ProjectCard({
   title,
+  headingLevel: Heading = "h3",
   slug,
   status,
   href,
@@ -116,7 +118,7 @@ export function ProjectCard({
         )}
         <div className="flex items-start justify-between gap-2">
           <div className="flex flex-col gap-1">
-            <h3 className="font-semibold wrap-anywhere">{title}</h3>
+            <Heading className="font-semibold wrap-anywhere">{title}</Heading>
             {dates && <time className="text-xs text-muted-foreground">{dates}</time>}
             {status && <Badge variant="secondary" className="mt-1 w-fit text-[11px]">{status === "Building" ? t.building : status === "Live" ? t.live : status === "Archived" ? t.archived : status}</Badge>}
           </div>

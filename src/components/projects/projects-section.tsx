@@ -46,6 +46,7 @@ export default async function ProjectsSection({ featuredOnly = true }: { feature
                                 href={project.demo || project.github}
                                 slug={project.slug}
                                 title={project.name}
+                                headingLevel={featuredOnly ? "h3" : "h2"}
                                 status={project.status}
                                 description={project.description}
                                 dates={project.dates}

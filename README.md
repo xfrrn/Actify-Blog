@@ -130,8 +130,8 @@ node scripts/check-site.mjs http://localhost:8787
 | --- | --- |
 | `NODE_VERSION` | `24.20.0` |
 | `PNPM_VERSION` | `10.33.3` |
-| `NEXT_PUBLIC_SITE_URL` | `https://actify.cc` |
+| `GOOGLE_SITE_VERIFICATION` | 可选，填写 Search Console 提供的真实 HTML 标签验证码 |
 
-正式域名为 `https://actify.cc`，已在 `wrangler.jsonc` 中声明为 Custom Domain。部署时 Cloudflare 会配置对应的 DNS 和 HTTPS 证书。网站地址用于 canonical、RSS、robots 和站点地图；更换域名后需更新配置并重新构建。
+正式域名固定为 `https://actify.cc`（`src/data/site.tsx`），已在 `wrangler.jsonc` 中声明为 Custom Domain。canonical、RSS、robots 和站点地图共用此地址，不受预览环境变量影响。上线前请完成 [SEO 与域名验收](docs/seo-launch.md) 中的 Cloudflare 重定向和 Search Console 配置。
 
 也可以本地发布：完成构建后执行 `pnpm exec wrangler login`，再执行 `pnpm deploy:cloudflare`。部署命令会发布最近一次 Cloudflare 构建的产物，不会自动重新构建。

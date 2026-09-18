@@ -29,8 +29,16 @@ const BLUR_FADE_DELAY = 0.04;
 export default async function Page() {
   const { data: DATA, t, locale } = await getLanguage();
   const posts = getPosts(locale);
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      { "@type": "WebSite", "@id": `${DATA.url}/#website`, url: `${DATA.url}/`, name: DATA.name, description: DATA.description, author: { "@id": `${DATA.url}/#person` } },
+      { "@type": "Person", "@id": `${DATA.url}/#person`, url: `${DATA.url}/`, name: DATA.name, sameAs: [DATA.contact.social.GitHub.url, DATA.contact.social.X.url] },
+    ],
+  };
   return (
     <main className="min-h-dvh flex flex-col gap-14 relative">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
       <section id="hero">
         <div className="mx-auto w-full max-w-2xl space-y-8">
           <div className="gap-2 gap-y-6 flex flex-col md:flex-row justify-between">

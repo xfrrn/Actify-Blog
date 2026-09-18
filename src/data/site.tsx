@@ -10,7 +10,7 @@ const email = "actify_top@foxmail.com";
 const chineseData = {
   name: "Actify",
   initials: "A",
-  url: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://actify.cc").origin,
+  url: "https://actify.cc",
   roles: ["创业者", "论文 maker", "出海 SEO 践行者"],
   description: "大学在读，也在创业。喜欢做些小工具，最近在学习和实践出海 SEO。",
   summary: "我是 Actify，一名正在创业的在读大学生，也是论文 maker、出海 SEO 践行者。喜欢做些小工具，把自己的想法动手做出来。\n\n这里记录我的学习、生活和工作，也放一些作品和博客。希望通过这些记录，认识同样在做工具、写论文或尝试出海的朋友。",
