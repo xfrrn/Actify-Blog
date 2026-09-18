@@ -16,7 +16,8 @@
     "lint": "eslint",
     "lint:fix": "eslint --fix",
     "typecheck": "next typegen && tsc --noEmit",
-    "test:content": "node scripts/check-content.mjs"
+    "test:content": "node scripts/check-content.mjs",
+    "test:feedback": "node scripts/check-feedback.mjs"
   },
   "dependencies": {
     "@content-collections/mdx": "^0.2.2",

@@ -6,6 +6,7 @@ import { getLanguage } from "@/lib/server-language";
 import Link from "next/link";
 import Markdown from "react-markdown";
 import ContactSection from "@/components/home/contact-section";
+import FeedbackSection from "@/components/home/feedback-section";
 import HackathonsSection from "@/components/home/hackathons-section";
 import ProjectsSection from "@/components/projects/projects-section";
 import WorkSection from "@/components/home/work-section";
@@ -192,6 +193,7 @@ export default async function Page() {
           <ContactSection />
         </BlurFade>
       </section>
+      <FeedbackSection />
     </main>
   );
 }
