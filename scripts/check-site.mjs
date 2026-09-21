@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
-import allPosts from "../.content-collections/generated/allPosts.js";
-import allProjects from "../.content-collections/generated/allProjects.js";
+import { allContent, publishedContent } from "../src/lib/cms-store.ts";
+import { markdownMetadata } from "../src/lib/markdown.ts";
+const allPosts = allContent("posts").flatMap((entry) => Object.entries(entry.data).map(([language, draft]) => {
+  const post = entry.published?.[language] || draft;
+  return { ...post, slug: entry.slug, language, draft: !!entry.deletedAt || !entry.published?.[language], ...markdownMetadata(post.content) };
+}));
+const allProjects = publishedContent("projects").map((entry) => ({ ...entry.published, slug: entry.slug, draft: false }));
 
 // Run against a running production server: node scripts/check-site.mjs http://localhost:3000
 const origin = process.argv[2] || "http://localhost:3000";

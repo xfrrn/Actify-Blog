@@ -17,8 +17,8 @@ export async function generateMetadata({ searchParams }: { searchParams: BlogSea
     title: t.blog,
     description: DATA.blog.description,
     alternates: { canonical: "/blog", types: { "application/rss+xml": `${DATA.url}/rss.xml` } },
-    openGraph: { title: `${t.blog} | ${DATA.name}`, description: DATA.blog.description, url: "/blog", locale: locale === "zh" ? "zh_CN" : "en_US" },
-    twitter: { card: "summary_large_image", title: `${t.blog} | ${DATA.name}`, description: DATA.blog.description },
+    openGraph: { title: `${t.blog} | ${DATA.name}`, description: DATA.blog.description, url: "/blog", locale: locale === "zh" ? "zh_CN" : "en_US", images: ["/blog/opengraph-image"] },
+    twitter: { card: "summary_large_image", title: `${t.blog} | ${DATA.name}`, description: DATA.blog.description, images: ["/blog/opengraph-image"] },
     ...(first(params.category) ? { robots: { index: false, follow: true } } : {}),
   };
 }

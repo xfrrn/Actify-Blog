@@ -1,7 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { ImageResponse } from "next/og";
-import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { formatDate } from "@/lib/utils";
 import { DATA } from "@/data/site";
 
@@ -11,17 +10,6 @@ const size = {
 };
 
 async function readFont(filename: string): Promise<ArrayBuffer> {
-    let assets;
-    try {
-        assets = getCloudflareContext().env.ASSETS;
-    } catch {
-        // Next.js builds and the local Node.js server have no Workers context.
-    }
-    if (assets) {
-        const response = await assets.fetch(new Request(`https://assets.local/fonts/${filename}`));
-        if (!response.ok) throw new Error(`Failed to load font ${filename}: ${response.status}`);
-        return response.arrayBuffer();
-    }
     return new Uint8Array(await readFile(join(process.cwd(), "public/fonts", filename))).buffer;
 }
 

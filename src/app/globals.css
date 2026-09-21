@@ -4,6 +4,14 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+@layer components {
+  .admin-page { @apply mx-auto max-w-[960px] px-5 py-10 sm:px-8 sm:py-14; }
+  .admin-title { @apply text-[28px] font-semibold tracking-tight; }
+  .admin-field { @apply block min-w-0 text-sm font-medium; }
+  .admin-input { @apply block w-full rounded-lg border border-input bg-background px-3 py-2.5 text-base font-normal outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60 sm:text-sm; }
+  .admin-muted { @apply text-sm leading-relaxed text-muted-foreground; }
+}
+
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);

@@ -1,7 +1,7 @@
 "use client";
 import { useLanguage } from "@/components/layout/language-provider";
 
-import { useState, useRef, useEffect, type ComponentProps } from "react";
+import { Children, isValidElement, useState, useEffect, type ComponentProps } from "react";
 import { Copy, Check } from "lucide-react";
 import { Button } from "../ui/button";
 import { codeToHtml, bundledLanguages, type BundledLanguage } from "shiki/bundle/web";
@@ -19,23 +19,18 @@ export function CodeBlock({ children, ...props }: CodeBlockProps) {
   const { t } = useLanguage();
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState(false);
-  const [{ html, className, title }, setRenderState] = useState<{
-    html: string;
-    className: string;
-    title: string | null;
-  }>({ html: "", className: "", title: null });
-  const preRef = useRef<HTMLPreElement>(null);
+  const code = Children.toArray(children).find((child) => isValidElement(child));
+  const codeProps = isValidElement<ComponentProps<"code"> & { "data-title"?: string }>(code) ? code.props : {};
+  const codeText = Children.toArray(codeProps.children).join("");
+  const className = codeProps.className || "";
+  const title = codeProps["data-title"];
+  const source = JSON.stringify([codeText, className]);
+  const [highlighted, setHighlighted] = useState({ source: "", html: "" });
+  const html = highlighted.source === source ? highlighted.html : "";
 
   useEffect(() => {
-    const pre = preRef.current;
-    const codeEl = pre?.querySelector("code");
-    if (!pre || !codeEl) return;
-
-    const codeText = codeEl.textContent || "";
-    const lang = extractLanguage(codeEl.className);
-    const nextTitle = codeEl.getAttribute("data-title");
-    const nextClassName = codeEl.className || "";
-
+    let active = true;
+    const lang = extractLanguage(className);
     void codeToHtml(codeText, {
       lang: lang in bundledLanguages ? lang as BundledLanguage : "text",
       themes: {
@@ -47,22 +42,21 @@ export function CodeBlock({ children, ...props }: CodeBlockProps) {
       .then((html) => {
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, "text/html");
-        setRenderState({
+        if (active) setHighlighted({
+          source,
           html: doc.querySelector("code")?.innerHTML ?? "",
-          className: nextClassName,
-          title: nextTitle,
         });
       })
       .catch((error) => {
         console.error("Failed to highlight code:", error);
-        setRenderState({ html: "", className: nextClassName, title: nextTitle });
+        if (active) setHighlighted({ source, html: "" });
       });
-  }, [children]);
+    return () => { active = false; };
+  }, [codeText, className, source]);
 
   const handleCopy = async () => {
-    const code = preRef.current?.querySelector("code")?.textContent || "";
     try {
-      await navigator.clipboard.writeText(code);
+      await navigator.clipboard.writeText(codeText);
       setCopyError(false);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -90,7 +84,6 @@ export function CodeBlock({ children, ...props }: CodeBlockProps) {
         </Button>
         <span role="status" className={copyError ? "block p-3 text-xs" : "sr-only"}>{copyError ? t.copyError : copied ? t.copied : ""}</span>
       <pre
-        ref={preRef}
         {...props}
         tabIndex={0}
         aria-label={title ? `${t.code}: ${title}` : t.code}

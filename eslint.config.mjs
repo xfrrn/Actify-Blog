@@ -15,6 +15,7 @@ const eslintConfig = defineConfig([
         '.content-collections/**',
         'output/**',
         '.playwright-cli/**',
+        '.playwright-mcp/**',
     ]),
 ])
 

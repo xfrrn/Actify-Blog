@@ -3,14 +3,14 @@ import { getLanguage } from "@/lib/server-language";
 import { createOpenGraphImage } from "@/lib/opengraph-image";
 
 export const runtime = "nodejs";
-export const size = { width: 1200, height: 630 };
-export const contentType = "image/png";
-export const alt = "Blog Post";
+export const dynamic = "force-dynamic";
 
-export default async function Image({ params }: { params: Promise<{ slug: string }> }) {
+export async function GET(_request: Request, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const { locale } = await getLanguage();
   const post = getPost(slug, locale);
   if (!post) return new Response("Post not found", { status: 404 });
-  return createOpenGraphImage({ title: post.title, description: post.description, date: post.date });
+  const response = await createOpenGraphImage({ title: post.title, description: post.description, date: post.date });
+  response.headers.set("Cache-Control", "no-store");
+  return response;
 }

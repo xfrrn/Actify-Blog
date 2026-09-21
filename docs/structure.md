@@ -1,62 +1,38 @@
 # 项目结构
 
-## 日常维护入口
-
-| 任务 | 位置 |
+| 任务 | 入口 |
 | --- | --- |
-| 写文章 | `content/`，支持 `.md` 和 `.mdx` |
-| 修改个人资料、导航、联系方式与项目 | `src/data/site.tsx` |
-| 修改首页 | `src/app/page.tsx` |
-| 修改全站布局和主题样式 | `src/app/layout.tsx`、`src/app/globals.css` |
-| 调整文章排版 | `src/mdx-components.tsx`、`src/components/blog/` |
-| 修改分享图 | `src/lib/opengraph-image.tsx` |
-| 配置站点域名 | 参考 `.env.example` 设置 `NEXT_PUBLIC_SITE_URL` |
-
-## 目录职责
+| 文章、作品、反馈、图片 | /admin |
+| 个人资料、首页近况、导航、联系方式 | src/data/site.tsx |
+| 前台首页、博客、作品 | src/app/(site)/ |
+| 后台页面和交互 | src/app/admin/、src/components/admin/ |
+| 字体、主题、样式 | src/app/layout.tsx、src/app/globals.css |
+| 文章排版 | src/components/blog/markdown-body.tsx、src/mdx-components.tsx |
+| 分享图 | src/lib/opengraph-image.tsx |
+| 正式域名、canonical | src/data/site.tsx 的 DATA.url |
+| 来源校验 | SITE_ORIGIN 环境变量 |
 
 ```text
-content/                 博客文章
-public/                  本地静态资源和分享图字体
-src/
-  app/                   页面、路由、Metadata 与全局样式
-  components/
-    blog/                文章列表、代码块、图片与视频
-    home/                首页专属区块及活动时间线
-    projects/            首页和项目页共用的项目展示组件
-    layout/              全站导航与主题切换
-    icons/               社交图标与使用中的技术栈图标
-    magicui/             动画、Dock 和背景效果
-    ui/                  按钮、卡片、头像等基础组件
-  data/site.tsx          集中的站点与个人资料
-  lib/                   文章查询、分页、内容处理、分享图生成
-  mdx-components.tsx     MDX 标签与 React 组件的映射入口
-scripts/                 可运行检查
-docs/                    维护说明
+content/                  初次导入来源，不再是线上数据源
+public/                   静态资源和分享图字体
+src/app/(site)/           窄栏、网格背景、Dock 前台
+src/app/admin/            独立宽布局、受保护编辑页和预览
+src/app/api/admin/        登录、会话、内容、素材、审核
+src/app/api/feedback/     访客反馈提交
+src/app/media/            公开上传图片
+src/lib/cms-*.ts          SQLite、模型、版本检查、迁移
+src/lib/admin-*.ts        密码、会话、来源和大小校验
+src/lib/posts.ts          已发布文章、语言选择、Markdown 元数据
+src/lib/projects.ts       已发布作品
+src/lib/r2.ts             R2 S3 签名上传、读取和恢复保护
+scripts/admin.mjs         导入、密码、备份、恢复
+scripts/check-*.mjs       核心与生产 HTTP 检查
+deploy/                  systemd / Nginx 示例
+docs/                    使用及部署说明
 ```
 
-工作、教育和活动数据为空时，对应首页区块自动隐藏。
-R2 图片可直接在文章及项目数据中使用完整公开 URL；本地字体仍由分享图使用。
+内容流：content → 一次性导入 → 外部 DATA_DIR/actify.sqlite。后台带版本号保存 data，显式发布复制到 published，前台、RSS、sitemap、分享图实时读取。图片校验、重新编码后上传 R2 的 media/{uuid}.{ext}，SQLite 记录公开域名链接；本地开发和旧素材保留 DATA_DIR/uploads 与 /media/ 路由。
 
-## 内容流转
+前后台共用 MarkdownBody 和目录规则，不执行 JSX。mdx-components.tsx 保留名称，但仅做 Markdown 元素排版。根分享图是 src/app/opengraph-image.tsx；博客、文章用显式 opengraph-image/route.ts，避免分组改变公开地址。
 
-`content/` → `content-collections.ts` 校验与编译 → `.content-collections/` 生成数据
-→ `src/lib/posts.ts` 过滤草稿并排序 → 页面、RSS 与 Sitemap。
-
-`src/app/` 下三个 `opengraph-image.tsx` 保留各自路由信息，调用同一份分享图生成代码。
-
-## 运行与检查
-
-```sh
-pnpm install --frozen-lockfile
-pnpm dev
-```
-
-提交前运行 `pnpm lint`、`pnpm typecheck`、`pnpm test:content` 和 `pnpm build`。
-`typecheck` 会生成内容数据，应在 `test:content` 前执行。
-
-生产构建后运行 `pnpm start`，另开终端执行
-`node scripts/check-site.mjs http://localhost:3000`，检查页面、订阅、分享图和 404。
-站点检查目前使用仓库中的 `mdx-writing-guide` 示例文章；删除该示例时需同步更新检查路径。
-
-`node_modules/`、`.next/`、`.content-collections/`、`output/` 和 `.playwright-cli/`
-均为依赖或生成内容，已被 Git 忽略，不作为源码维护。
+运行检查见 [README](../README.md)，持久化和代理规则见 [部署说明](admin.md)。

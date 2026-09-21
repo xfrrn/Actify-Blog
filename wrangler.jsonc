@@ -1,31 +1,14 @@
 {
+  // Legacy D1 export configuration only. The application now runs on Node.js.
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "actify-blog",
-  "main": ".open-next/worker.js",
-  // next-themes serializes functions into an inline script.
-  // https://opennext.js.org/cloudflare/howtos/keep_names
-  "keep_names": false,
   "compatibility_date": "2026-09-15",
   "compatibility_flags": ["nodejs_compat"],
-  "routes": [
-    { "pattern": "actify.cc", "custom_domain": true }
-  ],
-  "assets": {
-    "directory": ".open-next/assets",
-    "binding": "ASSETS"
-  },
   "d1_databases": [
     {
       "binding": "FEEDBACK_DB",
       "database_name": "actify-blog-feedback",
       "migrations_dir": "migrations"
-    }
-  ],
-  "ratelimits": [
-    {
-      "name": "FEEDBACK_RATE_LIMITER",
-      "namespace_id": "1001",
-      "simple": { "limit": 3, "period": 60 }
     }
   ]
 }

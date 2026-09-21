@@ -1,9 +1,9 @@
-import { allProjects } from "content-collections";
-import type { Locale } from "@/lib/i18n";
+import { publishedContent } from "./cms-store.ts";
+import type { Locale } from "./i18n";
 
 export function getProjects(locale: Locale, featuredOnly = false) {
-  return allProjects
-    .filter((project) => !project.draft && (!featuredOnly || project.featured))
+  return publishedContent("projects").map((entry) => ({ ...entry.published!, slug: entry.slug }))
+    .filter((project) => !featuredOnly || project.featured)
     .sort((a, b) => a.order - b.order || a.slug.localeCompare(b.slug))
-    .map((project) => ({ ...project, description: project.description[locale] }));
+    .map((project) => ({ ...project, status: project.status || undefined, description: project.description[locale] }));
 }

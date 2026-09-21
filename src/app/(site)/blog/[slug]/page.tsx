@@ -5,8 +5,7 @@ import { formatDate } from "@/lib/utils";
 import { DATA } from "@/data/site";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { MDXContent } from "@content-collections/mdx/react";
-import { mdxComponents } from "@/mdx-components";
+import { MarkdownBody } from "@/components/blog/markdown-body";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -159,7 +158,7 @@ export default async function Blog({
         />
       </div>
       <article lang={post.language} className="prose min-w-0 max-w-full text-pretty font-sans leading-relaxed text-foreground/90 dark:prose-invert wrap-anywhere">
-        <MDXContent code={post.mdx} components={mdxComponents} />
+        <MarkdownBody content={post.content} />
       </article>
 
       <nav aria-label={t.adjacent} className="mt-12 pt-8 max-w-2xl">

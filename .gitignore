@@ -45,3 +45,8 @@ next-env.d.ts
 .content-collections
 /output/
 /.playwright-cli/
+/.playwright-mcp/
+
+# Local CMS data (production uses external DATA_DIR)
+/.data/
+/.pnpm-store/

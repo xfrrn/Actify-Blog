@@ -1,7 +1,7 @@
 import { DATA } from "@/data/site";
-import { posts } from "@/lib/posts";
+import { getPosts } from "@/lib/posts";
 
-export const dynamic = "force-static";
+export const dynamic = "force-dynamic";
 
 function escapeXml(value: string) {
   return value.replace(/[<>&"']/g, (character) => ({
@@ -10,7 +10,7 @@ function escapeXml(value: string) {
 }
 
 export function GET() {
-  const items = posts.map((post) => {
+  const items = getPosts().map((post) => {
     const url = escapeXml(`${DATA.url}/blog/${post.slug}`);
     return `<item>
       <title>${escapeXml(post.title)}</title>
@@ -30,6 +30,6 @@ export function GET() {
       <atom:link href="${escapeXml(DATA.url)}/rss.xml" rel="self" type="application/rss+xml" />
       ${items}
     </channel></rss>`, {
-    headers: { "Content-Type": "application/rss+xml; charset=utf-8" },
+    headers: { "Content-Type": "application/rss+xml; charset=utf-8", "Cache-Control": "no-store" },
   });
 }

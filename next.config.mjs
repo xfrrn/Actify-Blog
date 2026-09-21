@@ -1,13 +1,15 @@
-import { withContentCollections } from "@content-collections/next";
-import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
-
-initOpenNextCloudflareForDev();
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  agentRules: false,
   reactStrictMode: true,
+  serverExternalPackages: ["sharp"],
   async headers() {
     return [
+      ...["/admin/:path*", "/api/:path*", "/rss.xml", "/sitemap.xml"].map((source) => ({
+        source, headers: [{ key: "Cache-Control", value: "no-store" }],
+      })),
+      { source: "/admin/:path*", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }] },
       {
         source: "/:path*",
         headers: [
@@ -33,5 +35,4 @@ const nextConfig = {
   },
 };
 
-// withContentCollections must be the outermost plugin
-export default withContentCollections(nextConfig);
+export default nextConfig;

@@ -3,12 +3,12 @@ import { ChevronRight } from "lucide-react";
 import BlurFade from "@/components/magicui/blur-fade";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
-import type { posts as blogPosts } from "@/lib/posts";
+import type { Post } from "@/lib/posts";
 
 import { messages, type Locale } from "@/lib/i18n";
 
 // The original blog row, shared by the archive and Latest Writing.
-export function PostList({ posts, startIndex = 0, numbered = true, locale = "en" }: { locale?: Locale; posts: typeof blogPosts; startIndex?: number; numbered?: boolean }) {
+export function PostList({ posts, startIndex = 0, numbered = true, locale = "en" }: { locale?: Locale; posts: Post[]; startIndex?: number; numbered?: boolean }) {
   const t = messages[locale];
   return (
     <div className="flex flex-col gap-6">

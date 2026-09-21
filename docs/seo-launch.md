@@ -4,7 +4,7 @@
 
 ## Cloudflare / DNS（必须手动完成）
 
-2026-09-18 实测：HTTPS 首页、robots、sitemap 返回 200；HTTP `/blog/test?seo=1` 返回 404 而非重定向；`www.actify.cc` 无法解析。仓库中的 apex Custom Domain 不能代替以下区域配置。
+目前采用美国服务器 + Cloudflare 代理，服务器与缓存配置见 [后台部署](admin.md)。旧 Worker Custom Domain 需在切换时解绑。下面的边缘重定向仍需配置并在切换后复测。
 
 1. DNS 中添加 `www` CNAME 指向 `actify.cc`，开启代理（橙云），确认边缘证书覆盖 `www.actify.cc`。
 2. Rules → Redirect Rules → Single Redirect，匹配表达式：
@@ -21,14 +21,14 @@
 ## Google Search Console
 
 - 推荐添加 `actify.cc` Domain property，将 Google 给出的真实 TXT 记录填入 Cloudflare DNS。
-- 若选择 `https://actify.cc/` URL-prefix property 的 HTML 标签验证：把真实 token 填入 `.env.local` 或 Cloudflare **Build variables** 的 `GOOGLE_SITE_VERIFICATION`，然后重新构建、部署。只填 `content` 值，不填整个标签；空值不输出验证标签。
+- 若选择 `https://actify.cc/` URL-prefix property 的 HTML 标签验证：把真实 token 填入服务器环境中的 `GOOGLE_SITE_VERIFICATION`，重启服务。只填 `content` 值，不填整个标签；空值不输出验证标签。
 - 验证所有权后提交 `https://actify.cc/sitemap.xml`，用 URL Inspection 检查首页、Projects、Blog 和发布后的文章。
 
 ## 内容与检查
 
-- 现有三篇示例都是草稿，当前 sitemap 只有首页、Projects 和 Blog；发布真实文章并重新构建后自动纳入。slug 来自现有文件命名规则，无需手工维护 URL 列表。
+- 初次导入保留示例草稿与现有公开文章。sitemap 实时读取 SQLite 的已发布数据，后台发布或撤回后新请求自动更新，无需构建。文章地址在首次发布后锁定。
 - Next.js 原生 Metadata API 将根 canonical 序列化为 `https://actify.cc`，与 `https://actify.cc/` 是同一根 URL；sitemap 沿用相同写法。其他页面不带末尾斜杠。
-- 主要页面使用 Next.js Metadata API，文章 title、description、日期来自 frontmatter；正文服务端渲染。首页输出真实 WebSite / Person，文章保留 BlogPosting。未添加虚构评价或 FAQ；当前无面包屑 UI，无需额外增加 BreadcrumbList。
+- 主要页面使用 Next.js Metadata API，文章 title、description、日期来自数据库的已发布快照；正文服务端渲染。首页输出真实 WebSite / Person，文章保留 BlogPosting。未添加虚构评价或 FAQ；当前无面包屑 UI，无需额外增加 BreadcrumbList。
 - `/blog?category=...` 的 `noindex, follow` 是有意排除筛选视图；`/admin/feedback` 和反馈 API 的 noindex 是有意保护非搜索页面。它们不在 sitemap。404 也应 noindex。
 - 同一 URL 的语言由 Cookie 决定，搜索引擎通常获得默认英文界面；这不等于中英版本各有独立可索引 URL。中文原文仍会在没有英文译文时服务端输出。
 
@@ -42,9 +42,11 @@ npm run test:content
 node scripts/check-site.mjs http://localhost:3000
 ```
 
-现有 `npm run test:feedback` 需要本地 D1、迁移和 `.dev.vars` 中的管理 token，按反馈文档准备后执行；不要对线上运行该写入测试。
+`pnpm test:admin`（或 `test:feedback`）在构建后自动启动隔离的生产服务，不需要 D1。运行 `check-site.mjs` 时设置与被检查服务相同的 `DATA_DIR`；它只读数据库和页面。
 
 ## 2026-09-18 验收结果
+
+以下是迁移到 SQLite 之前的历史记录，不代表当前线上状态或新后台的部署结果。
 
 - `npm run lint`、`npm run typecheck`、`npm run build`、`npm run test:content`、本地 `npm run test:feedback -- http://localhost:3100` 全部通过。使用 npm 执行同一组 package scripts，避免当前 pnpm 包装器自动重装依赖。
 - `node scripts/check-site.mjs http://localhost:3100` 通过：正常页 200、canonical、Open Graph / Twitter、robots、sitemap、H1 / 图片 alt、结构化数据、中英文 SSR、分享图片与真实 404（普通浏览器、Googlebot、Twitterbot）。
