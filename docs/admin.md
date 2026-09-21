@@ -12,7 +12,7 @@
 
 ## 数据与命令
 
-`DATABASE_URL` 指定 PostgreSQL 数据库，保存内容、反馈、密码哈希、会话、限流和导入记录。第一次连接自动创建缺少的 CMS 表；使用专用数据库和拥有这些表的账号。应用使用连接池，不在客户端暴露连接地址。
+`DATABASE_URL` 指定 PostgreSQL 数据库，保存内容、反馈、密码哈希、会话、限流和导入记录。`pnpm dev` / `pnpm start` / systemd 启动时自动创建缺少的 CMS 表和索引，完成后才处理应用请求；不需要手动执行 SQL 或迁移文件。已有表和数据保留，多个进程同时启动时通过事务锁串行建表；建表失败会阻止启动并报告错误。数据库本身与账号需预先准备，应用账号需要建表权限。CLI 首次连接也复用同一逻辑。应用使用连接池，不在客户端暴露连接地址。
 
 ```dotenv
 DATABASE_URL=postgresql://actify:替换为实际密码@127.0.0.1:5432/actify_blog
@@ -71,22 +71,57 @@ R2_PUBLIC_URL=https://img.actify.cc
 
 本地 `.env.local` 已按提供的桶设置填写 Endpoint、桶名和公开域名；补齐两项访问密钥后重启服务，在素材库上传一张测试图，确认返回 `img.actify.cc` 链接，在未登录窗口也能打开，再测试插入正文和设为封面。密钥尚未填写，本地模拟检查不代表已经连通真实 R2。部署时将这些 R2 变量一并写入服务器 `/etc/actify.env`。
 
-## 美国服务器（Linux）
+## 美国服务器（Ubuntu / Debian + Caddy）
 
-请求路径：浏览器 → Cloudflare → Nginx HTTPS → 127.0.0.1:3000 → Next.js → PostgreSQL。准备 Node.js 24、pnpm 10.33.3、PostgreSQL、Nginx 和域名有效证书。`pg_dump` / `pg_restore` 客户端使用与数据库匹配的主版本（当前验证为 18），放入 PATH；Windows 可设置 `PG_BIN_DIR=C:/Program Files/PostgreSQL/18/bin`。Node 可执行路径不同则调整 systemd 的 ExecStart。
+请求路径：浏览器 → Cloudflare → Caddy HTTPS → 127.0.0.1:3000 → Next.js → PostgreSQL；图片通过 `img.actify.cc` 直接访问 R2。沿用已有 Caddy，应用用 systemd 管理。
 
-创建专用用户与目录，把代码放进 /opt/actify，让 actify 用户可读代码、可写 .next。依赖在 Linux 安装，不复制 Windows node_modules。
+### 1. 安装运行环境
+
+使用受支持的 Ubuntu / Debian。以下命令用于尚未安装 Node.js / PostgreSQL 的服务器；已有环境先检查版本，不重复创建数据库或替换其他应用的运行环境。项目使用 Node.js 24、pnpm 10.33.3，PostgreSQL 已在 18 验证，Caddy 配置要求 2.8 或更高。
+
+```sh
+sudo apt update
+sudo apt install -y ca-certificates curl git postgresql-common
+
+# NodeSource 的 Node.js 24 软件源，安装到系统路径。
+curl -fsSL https://deb.nodesource.com/setup_24.x -o /tmp/actify-node-setup.sh
+sudo bash /tmp/actify-node-setup.sh
+sudo apt install -y nodejs
+sudo npm install -g pnpm@10.33.3
+
+# PostgreSQL 官方软件源；脚本会确认当前发行版。
+sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh
+sudo apt update
+sudo apt install -y postgresql-18 postgresql-client-18
+sudo systemctl enable --now postgresql
+
+node --version
+pnpm --version
+psql --version
+caddy version
+```
+
+安装来源：[NodeSource](https://github.com/nodesource/distributions)、[PostgreSQL Ubuntu](https://www.postgresql.org/download/linux/ubuntu/) / [Debian](https://www.postgresql.org/download/linux/debian/)。`pg_dump` / `pg_restore` 使用与数据库匹配的主版本，放入 PATH。若系统安装了多个版本，可在 `/etc/actify.env` 加 `PG_BIN_DIR=/usr/lib/postgresql/18/bin`。systemd 使用 `/usr/bin/node`，路径不同则按 `command -v node` 的结果调整 ExecStart，并确保 actify 用户可执行。
+
+### 2. 放入代码、创建数据库
+
+先把准备上线的版本（包括 `deploy/Caddyfile`）推送到仓库，或上传到服务器。依赖和构建在 Linux 上生成，不复制 Windows 的 `node_modules` / `.next` / 开发环境文件。以下为首次部署，已有目录或数据库请沿用。
 
 ```sh
 sudo useradd --system --create-home --shell /bin/bash actify
 sudo install -d -o actify -g actify -m 700 /var/lib/actify /var/backups/actify
 sudo install -d -o actify -g actify /opt/actify
+sudo -u actify git clone https://github.com/xfrrn/Actify-Blog.git /opt/actify
 # 仅在新服务器上创建应用账号与数据库，已有数据库不用重复创建：
 sudo -u postgres createuser --pwprompt actify
 sudo -u postgres createdb --owner=actify actify_blog
 ```
 
-在 `/etc/actify.env` 写入下列配置及前面的 R2 变量，设置所有者 `root:actify`、权限 `640`，让服务及 actify 用户运行的 CLI 可读取。生产使用专用账号和独立密码，不照搬开发凭据：
+数据库只监听本机；服务器防火墙和云安全组保留现有 SSH 管理入口，网站开放 80/443，3000 和 5432 不对公网开放。
+
+### 3. 配置生产环境
+
+用 `sudoedit /etc/actify.env` 写入以下配置，填入独立数据库密码与前面说明的 R2 S3 凭据：
 
 ```dotenv
 DATABASE_URL=postgresql://actify:替换为实际密码@127.0.0.1:5432/actify_blog
@@ -94,15 +129,33 @@ DATA_DIR=/var/lib/actify
 SITE_ORIGIN=https://actify.cc
 TRUST_PROXY=1
 MEDIA_STORAGE=r2
+R2_ENDPOINT=https://<ACCOUNT_ID>.r2.cloudflarestorage.com
+R2_BUCKET=blog
+R2_ACCESS_KEY_ID=替换为实际访问密钥
+R2_SECRET_ACCESS_KEY=替换为实际秘密密钥
+R2_PUBLIC_URL=https://img.actify.cc
 GOOGLE_SITE_VERIFICATION=
 ```
 
-放入仓库代码并完成环境配置后：
+数据库密码中的特殊字符需要 URL 编码；`SITE_ORIGIN` 必须与后台访问地址完全相同，不加末尾 `/`。代码里的正式域名也在 `src/data/site.tsx`，换域名时一并修改。然后限制环境文件权限：
+
+```sh
+sudo chown root:actify /etc/actify.env
+sudo chmod 640 /etc/actify.env
+```
+
+### 4. 初始化并启动应用
+
+缺失的表由服务启动时自动创建。下面的 `import` 仅用于导入仓库文章与作品，可省略；`password` 用于首次设置或重设后台登录密码，均不是建表迁移命令。`data:migrate-sqlite` 仅在需要搬迁旧 SQLite 数据时使用。
 
 ```sh
 cd /opt/actify
 sudo -u actify pnpm install --frozen-lockfile
-# 若有旧 SQLite，先按上节迁移，之后再导入尚未迁移的仓库内容。
+```
+
+如果要保留本地后台已编辑的内容，先在原环境运行 `pnpm data:backup <新目录>`，将完整备份私下传到服务器，按后文恢复到空数据库和空 DATA_DIR，再执行下面的导入与构建；`import` 只导入仓库源文件，不会同步本地 PostgreSQL。已有 SQLite 则先按上节迁移。首次上线只使用仓库内容时，直接执行：
+
+```sh
 sudo -u actify node --env-file=/etc/actify.env scripts/admin.mjs import
 sudo -u actify node --env-file=/etc/actify.env scripts/admin.mjs password
 sudo -u actify node --env-file=/etc/actify.env node_modules/next/dist/bin/next build
@@ -114,24 +167,40 @@ curl -I http://127.0.0.1:3000/blog
 
 [systemd 单元](../deploy/actify.service)读取 `/etc/actify.env`，并在本机 PostgreSQL 服务之后启动。
 
-`TRUST_PROXY=1` 仅用于配套 Nginx：它覆盖客户端 X-Real-IP，Node 端口只绑定本机。直接开发保持 0，此时限流共用一个本地桶。
+### 5. 合并 Caddy 配置
 
-把 [Nginx 配置](../deploy/nginx.conf) 放进 http 上下文（例如 /etc/nginx/conf.d/actify.conf），替换证书路径。Cloudflare 后面需恢复访客 IP，避免边缘节点共用限流。下载官方范围，分别确认 curl 成功，再生成可信列表：
+把 [Caddyfile](../deploy/Caddyfile) 的内容合并进 `/etc/caddy/Caddyfile`，保留已有站点和证书策略。全局 `{ ... }` 块最多一个且必须位于文件开头：已有全局块时，把示例的 `servers` 设置合进去；已有 `servers` / `trusted_proxies` 时核对并合并，避免重复或扩大信任范围。`actify.cc` 也只保留一个站点块。
+
+`TRUST_PROXY=1` 依赖 `header_up X-Real-IP {client_ip}`：覆盖请求自带的 X-Real-IP；仅当连接来自可信 Cloudflare 网段时，才读取 CF-Connecting-IP。其他连接使用实际来源 IP。不要直接转发任意请求的 CF-Connecting-IP，也不要把 Node 端口开放到公网。应用负责登录每 IP 10 次 / 10 分钟、反馈 3 次 / 分钟的限流，无需额外 Caddy 插件。
+
+示例已包含核对日期的官方 IPv4 / IPv6 网段。上线时及范围变化后，对照 [IPv4](https://www.cloudflare.com/ips-v4) / [IPv6](https://www.cloudflare.com/ips-v6) 更新 `trusted_proxies static`。参考 [Caddy 可信代理](https://caddyserver.com/docs/caddyfile/options#trusted-proxies) 与 [请求头覆盖](https://caddyserver.com/docs/caddyfile/directives/reverse_proxy#headers)。
 
 ```sh
-curl -fsS https://www.cloudflare.com/ips-v4 -o /tmp/actify-cf-v4
-curl -fsS https://www.cloudflare.com/ips-v6 -o /tmp/actify-cf-v6
-sudo mkdir -p /etc/nginx/snippets
-awk 'NF {print "set_real_ip_from " $0 ";"}' /tmp/actify-cf-v4 /tmp/actify-cf-v6 | sudo tee /etc/nginx/snippets/actify-cloudflare.conf
-sudo nginx -t
-sudo systemctl reload nginx
+sudo cp -p /etc/caddy/Caddyfile /etc/caddy/Caddyfile.before-actify
+sudoedit /etc/caddy/Caddyfile
+sudo caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+# 只在校验通过后执行：
+sudo systemctl reload caddy
 ```
 
-只信任这些范围发来的 CF-Connecting-IP，范围变化时更新文件。登录每 IP 10 次 / 10 分钟，反馈 3 次 / 分钟，另有 Nginx 登录突发限制。[Cloudflare 请求头说明](https://developers.cloudflare.com/fundamentals/reference/http-headers/)。
+### 6. HTTPS、Cloudflare 与切换
 
-源站 HTTPS 正常后，把 actify.cc DNS 指向服务器并开启橙云。SSL/TLS 选 **Full (strict)**，源站证书需未过期且匹配域名。[官方说明](https://developers.cloudflare.com/ssl/origin-configuration/ssl-modes/full-strict/)。切换时解绑旧 Worker 同域名 Custom Domain / Route，避免继续命中旧应用。保留旧 D1 至迁移验收完成。
+已有 `actify.cc` 有效证书时沿用。如果这是新域名、Caddy 还没有证书，可以在切换时先将 `actify.cc` 的 A 记录指向服务器并暂时关闭代理（灰云），确认 80/443 可达，让 Caddy 自动签发证书；不要留下指向旧服务器的 AAAA 记录。`curl -I https://actify.cc/blog` 正常后再开启橙云。后续保持 HTTP ACME 验证路径可达，不让旧 Worker、重定向或 WAF 挑战拦截证书续期。参考 [Caddy 自动 HTTPS](https://caddyserver.com/docs/automatic-https)。
 
-切换前冻结旧站反馈写入，最后导出 D1、导入新库，再切 DNS。命令见 [反馈迁移](feedback.md)。域名归一化和 Search Console 见 [SEO 文档](seo-launch.md)。
+若要一直保留橙云，可为 Caddy 配置 Cloudflare Origin CA 证书（显式 `tls <证书路径> <私钥路径>`，需 caddy 用户可读），或沿用已有 DNS 验证方案；Origin CA 证书供 Cloudflare 回源使用，浏览器不能直接信任它。参考 [Origin CA](https://developers.cloudflare.com/ssl/origin-configuration/origin-ca/)。
+
+Cloudflare SSL/TLS 选 **Full (strict)**，要求源站证书未过期且匹配域名。[官方说明](https://developers.cloudflare.com/ssl/origin-configuration/ssl-modes/full-strict/)。若仍有旧 Worker，在切换前冻结旧站反馈写入，最后导出 D1、导入新库，再解绑同域名 Custom Domain / Route 并改 DNS。命令见 [反馈迁移](feedback.md)。保留旧 D1 至迁移验收完成；域名归一化和 Search Console 见 [SEO 文档](seo-launch.md)。
+
+按下一节配置缓存后，访问 `https://actify.cc/admin`，验证登录、草稿发布、图片上传和中英文页面，并运行：
+
+```sh
+cd /opt/actify
+sudo -u actify node --env-file=/etc/actify.env scripts/check-site.mjs http://127.0.0.1:3000
+sudo journalctl -u actify -n 100 --no-pager
+sudo journalctl -u caddy -n 100 --no-pager
+```
+
+仓库还保留 [Nginx 示例](../deploy/nginx.conf) 供其他环境使用；本部署流程由现有 Caddy 监听 80/443。
 
 ## Cloudflare 缓存
 

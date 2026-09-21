@@ -6,6 +6,8 @@ Actify 的个人网站、技术博客与中文内容后台。Next.js / React / T
 
 使用 Node.js 24、pnpm 10.33.3 和 PostgreSQL（已在 PostgreSQL 18 验证），先创建数据库 `actify_blog`：
 
+配置好 `DATABASE_URL` 后，开发和生产服务在启动时自动创建缺失的表与索引，保留已有数据，无需手动运行迁移文件。数据库账号需有建表权限；`content:import` 仅用于可选的初始内容导入，`admin:password` 用于设置后台密码。
+
 ```sh
 pnpm install --frozen-lockfile
 cp .env.example .env.local

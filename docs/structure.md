@@ -27,7 +27,7 @@ src/lib/projects.ts       已发布作品
 src/lib/r2.ts             R2 S3 签名上传、读取和恢复保护
 scripts/admin.mjs         SQLite 迁移、导入、密码、pg_dump 备份与恢复
 scripts/check-*.mjs       核心与生产 HTTP 检查
-deploy/                  systemd / Nginx 示例
+deploy/                  systemd / Caddy / Nginx 示例
 docs/                    使用及部署说明
 ```
 

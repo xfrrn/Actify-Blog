@@ -4,7 +4,7 @@
 
 状态为 pending / published / hidden。首页仅展示最新 20 条已公开原文和日期；搜索词仅发送给管理员。原文按纯文本渲染，审核后的新请求立即更新，不需构建。
 
-PostgreSQL 和统一会话替代旧 FEEDBACK_ADMIN_TOKEN 与 D1 在线读写。生产通过可信 Nginx 按访客 IP 限流，每分钟最多 3 次，并校验来源、隐藏字段和大小。失败保留输入，只有提交成功才清空。部署见 [后台说明](admin.md)。
+PostgreSQL 和统一会话替代旧 FEEDBACK_ADMIN_TOKEN 与 D1 在线读写。生产通过可信反向代理传递访客 IP，由应用限流，每分钟最多 3 次，并校验来源、隐藏字段和大小。失败保留输入，只有提交成功才清空。部署见 [后台说明](admin.md)。
 
 ## 导入旧 Cloudflare D1
 

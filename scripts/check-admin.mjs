@@ -7,6 +7,7 @@ import { once } from "node:events";
 import { createServer } from "node:net";
 import { setTimeout as delay } from "node:timers/promises";
 import sharp from "sharp";
+import { Client } from "pg";
 import { importRepository } from "../src/lib/cms-import.ts";
 import { setPassword } from "../src/lib/admin-auth.ts";
 import { database, closeDatabase } from "../src/lib/cms-db.ts";
@@ -16,14 +17,14 @@ import { testDatabase } from "./postgres-test.mjs";
 const testDb = await testDatabase();
 process.env.DATA_DIR = await mkdtemp(join(tmpdir(), "actify-http-test-"));
 process.env.MEDIA_STORAGE = "local";
-await importRepository(process.cwd());
 const password = "isolated-http-check-password";
-await setPassword(password);
+const probe = new Client({ connectionString: process.env.DATABASE_URL });
 const socket = createServer(); await new Promise((resolve) => socket.listen(0, "127.0.0.1", resolve));
 const port = socket.address().port; await new Promise((resolve) => socket.close(resolve));
 const origin = `http://127.0.0.1:${port}`;
 let output = "", cookie = "";
 const start = () => {
+output = "";
 const child = spawn(process.execPath, ["node_modules/next/dist/bin/next", "start", "--hostname", "127.0.0.1", "--port", String(port)], {
   windowsHide: true, stdio: ["ignore", "pipe", "pipe"],
   env: { ...process.env, NODE_ENV: "production", SITE_ORIGIN: origin, TRUST_PROXY: "0" },
@@ -40,13 +41,19 @@ const json = async (response, status = 200) => { assert.equal(response.status, s
 async function ready() {
   for (let i = 0; i < 100; i++) {
     if (server.exitCode !== null) throw new Error(output);
-    try { if ((await request("/admin/login")).ok) return; } catch {}
+    // Observe PostgreSQL directly; an HTTP probe could trigger lazy table creation.
+    if ((await probe.query("SELECT to_regclass('public.rate_limits') AS name")).rows[0].name) return;
     if (i === 99) throw new Error(`Server startup timed out\n${output}`);
     await delay(200);
   }
 }
 try {
+  await probe.connect();
   await ready();
+  const tables = await probe.query("SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY tablename");
+  assert.deepEqual(tables.rows.map(({ tablename }) => tablename), ["content", "feedback", "imports", "media", "rate_limits", "sessions", "settings"], "Startup creates all tables before any request or import");
+  await importRepository(process.cwd());
+  await setPassword(password);
   assert.equal((await request("/api/admin/posts", "GET", undefined, false)).status, 401);
   assert.match((await request("/admin/posts", "GET", undefined, false)).headers.get("location"), /\/admin\/login/);
   assert.equal((await request("/api/admin/login", "POST", { password: "wrong" }, false)).status, 401);
@@ -133,7 +140,9 @@ try {
     assert.match((await request(path)).headers.get("cache-control") || "", /no-store|private/, `${path} must bypass shared caches`);
   }
   const exited = once(server, "exit"); server.kill(); await exited;
+  await probe.query("DROP TABLE rate_limits");
   await closeDatabase(); server = start(); await ready();
+  assert.equal((await probe.query("SELECT to_regclass('public.rate_limits') AS name")).rows[0].name, "rate_limits", "Restart recreates a missing table before any request");
   assert.match(await (await request("/blog/http-publish-check")).text(), /新正文二/);
   assert.deepEqual(Buffer.from(await (await request(media.url)).arrayBuffer()), Buffer.from(await imageResponse.arrayBuffer()));
   assert.equal((await request(`/api/admin/posts/${entry.id}`)).status, 200, "Session and content survive process restart");
@@ -142,6 +151,6 @@ try {
   assert.equal((await request("/api/admin/logout", "POST")).status, 200);
   assert.equal((await request("/api/admin/posts")).status, 401);
   assert.equal((await (await database()).query("SELECT slug FROM content WHERE id=$1", [entry.id])).rows[0].slug, "http-publish-check");
-  console.log("Production HTTP checks passed: auth, origin checks, live publication, draft isolation, translations, RSS/sitemap/share images, projects, uploads, moderation, pagination, cache headers and restart persistence.");
+  console.log("Production HTTP checks passed: startup table creation and repair, auth, origin checks, live publication, draft isolation, translations, RSS/sitemap/share images, projects, uploads, moderation, pagination, cache headers and restart persistence.");
 } catch (error) { console.error(output.slice(-6000)); throw error; }
-finally { if (server.exitCode === null) { const exited = once(server, "exit"); server.kill(); await exited; } await testDb.cleanup(); }
+finally { if (server.exitCode === null) { const exited = once(server, "exit"); server.kill(); await exited; } await probe.end(); await testDb.cleanup(); }
