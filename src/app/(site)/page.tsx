@@ -29,7 +29,7 @@ const BLUR_FADE_DELAY = 0.04;
 
 export default async function Page() {
   const { data: DATA, t, locale } = await getLanguage();
-  const posts = getPosts(locale);
+  const posts = await getPosts(locale);
   const jsonLd = {
     "@context": "https://schema.org",
     "@graph": [

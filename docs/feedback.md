@@ -4,7 +4,7 @@
 
 状态为 pending / published / hidden。首页仅展示最新 20 条已公开原文和日期；搜索词仅发送给管理员。原文按纯文本渲染，审核后的新请求立即更新，不需构建。
 
-SQLite 和统一会话替代旧 FEEDBACK_ADMIN_TOKEN 与 D1 在线读写。生产通过可信 Nginx 按访客 IP 限流，每分钟最多 3 次，并校验来源、隐藏字段和大小。失败保留输入，只有提交成功才清空。部署见 [后台说明](admin.md)。
+PostgreSQL 和统一会话替代旧 FEEDBACK_ADMIN_TOKEN 与 D1 在线读写。生产通过可信 Nginx 按访客 IP 限流，每分钟最多 3 次，并校验来源、隐藏字段和大小。失败保留输入，只有提交成功才清空。部署见 [后台说明](admin.md)。
 
 ## 导入旧 Cloudflare D1
 
@@ -13,7 +13,7 @@ SQLite 和统一会话替代旧 FEEDBACK_ADMIN_TOKEN 与 D1 在线读写。生�
 ```sh
 pnpm exec wrangler login
 pnpm exec wrangler d1 execute FEEDBACK_DB --remote --command "SELECT id, pain_point, search_query, locale, status, created_at FROM feedback ORDER BY id" --json > /private/feedback-export.json
-DATA_DIR=/var/lib/actify pnpm feedback:import /private/feedback-export.json
+node --env-file=/etc/actify.env scripts/admin.mjs import-feedback /private/feedback-export.json
 ```
 
 接受 Wrangler 的 `[{results: [...]}]` 或 JSON 数组，保留原文、搜索词、状态、语言和时间。旧 ID 作为来源记录，重复导入不覆盖新审核结果；本地 ID 冲突则分配新 ID。

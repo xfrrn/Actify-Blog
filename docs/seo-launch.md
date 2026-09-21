@@ -26,7 +26,7 @@
 
 ## 内容与检查
 
-- 初次导入保留示例草稿与现有公开文章。sitemap 实时读取 SQLite 的已发布数据，后台发布或撤回后新请求自动更新，无需构建。文章地址在首次发布后锁定。
+- 初次导入保留示例草稿与现有公开文章。sitemap 实时读取 PostgreSQL 的已发布数据，后台发布或撤回后新请求自动更新，无需构建。文章地址在首次发布后锁定。
 - Next.js 原生 Metadata API 将根 canonical 序列化为 `https://actify.cc`，与 `https://actify.cc/` 是同一根 URL；sitemap 沿用相同写法。其他页面不带末尾斜杠。
 - 主要页面使用 Next.js Metadata API，文章 title、description、日期来自数据库的已发布快照；正文服务端渲染。首页输出真实 WebSite / Person，文章保留 BlogPosting。未添加虚构评价或 FAQ；当前无面包屑 UI，无需额外增加 BreadcrumbList。
 - `/blog?category=...` 的 `noindex, follow` 是有意排除筛选视图；`/admin/feedback` 和反馈 API 的 noindex 是有意保护非搜索页面。它们不在 sitemap。404 也应 noindex。
@@ -42,7 +42,7 @@ npm run test:content
 node scripts/check-site.mjs http://localhost:3000
 ```
 
-`pnpm test:admin`（或 `test:feedback`）在构建后自动启动隔离的生产服务，不需要 D1。运行 `check-site.mjs` 时设置与被检查服务相同的 `DATA_DIR`；它只读数据库和页面。
+`pnpm test:admin`（或 `test:feedback`）在构建后自动创建临时 PostgreSQL 数据库并启动生产服务，账号需有 CREATEDB 权限，不需要 D1。运行 `check-site.mjs` 时设置与被检查服务相同的 `DATABASE_URL`；它不修改内容，连接时会初始化缺少的 CMS 表。
 
 ## 2026-09-18 验收结果
 

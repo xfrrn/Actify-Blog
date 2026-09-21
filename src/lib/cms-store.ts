@@ -2,32 +2,35 @@ import { randomUUID } from "node:crypto";
 import { database, transaction } from "./cms-db.ts";
 import { postSchema, projectSchema, slugSchema, emptyProject, emptyTranslation } from "./cms-types.ts";
 import type { ContentRecord, Kind, PostData, ProjectData } from "./cms-types.ts";
+import type { PoolClient } from "pg";
 
 export class CmsError extends Error {
   status: number;
   constructor(status: number, message: string) { super(message); this.status = status; }
 }
-type Row = { id: string; kind: Kind; slug: string; locked: number; version: number; data: string; published: string | null; deleted_at: string | null; updated_at: string };
+type Row = { id: string; kind: Kind; slug: string; locked: boolean; version: number; data: PostData | ProjectData; published: PostData | ProjectData | null; deleted_at: string | null; updated_at: string };
 function record<K extends Kind>(row: Row): ContentRecord<K> {
-  return { id: row.id, kind: row.kind as K, slug: row.slug, locked: !!row.locked, version: row.version, data: JSON.parse(row.data), published: row.published ? JSON.parse(row.published) : null, deletedAt: row.deleted_at, updatedAt: row.updated_at };
+  return { id: row.id, kind: row.kind as K, slug: row.slug, locked: row.locked, version: row.version, data: row.data as ContentRecord<K>["data"], published: row.published as ContentRecord<K>["published"], deletedAt: row.deleted_at, updatedAt: row.updated_at };
 }
-export function getContent<K extends Kind>(kind: K, id: string): ContentRecord<K> {
-  const row = database().prepare("SELECT * FROM content WHERE kind = ? AND id = ?").get(kind, id) as Row | undefined;
+export async function getContent<K extends Kind>(kind: K, id: string): Promise<ContentRecord<K>> {
+  const { rows: [row] } = await (await database()).query<Row>("SELECT * FROM content WHERE kind = $1 AND id = $2", [kind, id]);
   if (!row) throw new CmsError(404, "内容不存在。");
   return record<K>(row);
 }
-export function allContent<K extends Kind>(kind: K): ContentRecord<K>[] {
-  return (database().prepare("SELECT * FROM content WHERE kind = ? ORDER BY updated_at DESC, id DESC").all(kind) as Row[]).map(record<K>);
+export async function allContent<K extends Kind>(kind: K, client?: PoolClient): Promise<ContentRecord<K>[]> {
+  return (await (client || await database()).query<Row>("SELECT * FROM content WHERE kind = $1 ORDER BY updated_at DESC, id DESC", [kind])).rows.map(record<K>);
 }
-export function createContent<K extends Kind>(kind: K) {
+export async function createContent<K extends Kind>(kind: K) {
   const id = randomUUID();
-  database().prepare("INSERT INTO content(id, kind, slug, data, updated_at) VALUES (?, ?, ?, ?, ?)")
-    .run(id, kind, `untitled-${id.slice(0, 8)}`, JSON.stringify(kind === "posts" ? { zh: emptyTranslation() } : emptyProject()), new Date().toISOString());
-  return getContent(kind, id);
+  const result = await (await database()).query<Row>("INSERT INTO content(id, kind, slug, data, updated_at) VALUES ($1, $2, $3, $4, $5) RETURNING *",
+    [id, kind, `untitled-${id.slice(0, 8)}`, JSON.stringify(kind === "posts" ? { zh: emptyTranslation() } : emptyProject()), new Date().toISOString()]);
+  return record<K>(result.rows[0]);
 }
-export function updateContent<K extends Kind>(kind: K, id: string, input: { version: number; action: string; slug?: string; data?: unknown; locale?: "zh" | "en" }) {
-  return transaction(() => {
-    const entry = getContent(kind, id);
+export async function updateContent<K extends Kind>(kind: K, id: string, input: { version: number; action: string; slug?: string; data?: unknown; locale?: "zh" | "en" }) {
+  try { return await transaction(async (db) => {
+    const { rows: [row] } = await db.query<Row>("SELECT * FROM content WHERE kind=$1 AND id=$2 FOR UPDATE", [kind, id]);
+    if (!row) throw new CmsError(404, "内容不存在。");
+    const entry = record<K>(row);
     if (entry.version !== input.version) throw new CmsError(409, "此内容已在另一个页面更新。你的输入仍保留，请复制修改后重新载入。");
     if (entry.deletedAt && input.action !== "restore") throw new CmsError(409, "请先从回收站恢复内容。");
     let { slug, data, published, deletedAt, locked } = entry;
@@ -35,7 +38,6 @@ export function updateContent<K extends Kind>(kind: K, id: string, input: { vers
       slug = slugSchema.parse(input.slug);
       if (entry.locked && slug !== entry.slug) throw new CmsError(400, "首次发布后不能修改文章地址。");
       data = (kind === "posts" ? postSchema : projectSchema).parse(input.data) as typeof data;
-      if (database().prepare("SELECT id FROM content WHERE kind = ? AND slug = ? AND id != ?").get(kind, slug, id)) throw new CmsError(409, "这个地址已被使用，请换一个。");
     } else if (input.action === "publish") {
       if (kind === "posts") {
         const locale = input.locale;
@@ -62,12 +64,15 @@ export function updateContent<K extends Kind>(kind: K, id: string, input: { vers
     } else if (input.action === "restore") {
       deletedAt = null; // Restoring never silently republishes withdrawn content.
     } else throw new CmsError(400, "不支持的操作。");
-    database().prepare("UPDATE content SET slug=?, data=?, published=?, deleted_at=?, locked=?, version=version+1, updated_at=? WHERE id=?")
-      .run(slug, JSON.stringify(data), published ? JSON.stringify(published) : null, deletedAt, Number(locked), new Date().toISOString(), id);
-    return getContent(kind, id);
-  });
+    const result = await db.query<Row>("UPDATE content SET slug=$1, data=$2, published=$3, deleted_at=$4, locked=$5, version=version+1, updated_at=$6 WHERE id=$7 RETURNING *",
+      [slug, JSON.stringify(data), published ? JSON.stringify(published) : null, deletedAt, locked, new Date().toISOString(), id]);
+    return record<K>(result.rows[0]);
+  }); } catch (error) {
+    if ((error as { code?: string }).code === "23505") throw new CmsError(409, "这个地址已被使用，请换一个。");
+    throw error;
+  }
 }
 
-export function publishedContent<K extends Kind>(kind: K) {
-  return (database().prepare("SELECT * FROM content WHERE kind = ? AND deleted_at IS NULL AND published IS NOT NULL").all(kind) as Row[]).map(record<K>);
+export async function publishedContent<K extends Kind>(kind: K) {
+  return (await (await database()).query<Row>("SELECT * FROM content WHERE kind = $1 AND deleted_at IS NULL AND published IS NOT NULL", [kind])).rows.map(record<K>);
 }

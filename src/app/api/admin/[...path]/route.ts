@@ -26,15 +26,15 @@ async function handle(request: Request, context: Context) {
       const token = await login(password, clientIp(request));
       const response = json({ ok: true }); response.headers.set("Set-Cookie", cookie(token, sessionSeconds)); return response;
     }
-    requireSession(request);
+    await requireSession(request);
     if (section === "logout" && method === "POST" && !id) {
-      logout(requestToken(request)); const response = json({ ok: true }); response.headers.set("Set-Cookie", cookie("", 0)); return response;
+      await logout(requestToken(request)); const response = json({ ok: true }); response.headers.set("Set-Cookie", cookie("", 0)); return response;
     }
     const params = new URL(request.url).searchParams;
     const page = pageNumber(params);
-    if (section === "session" && method === "GET" && !id) return json({ pending: (database().prepare("SELECT count(*) AS n FROM feedback WHERE status='pending'").get() as { n: number }).n });
+    if (section === "session" && method === "GET" && !id) return json({ pending: (await (await database()).query("SELECT count(*)::int AS n FROM feedback WHERE status='pending'")).rows[0].n });
     if (section === "media" && !id) {
-      if (method === "GET") return json(listMedia(page));
+      if (method === "GET") return json(await listMedia(page));
       if (method === "POST") {
         let name = "image";
         try { name = decodeURIComponent(request.headers.get("x-filename") || name); } catch { throw new CmsError(400, "文件名无效。"); }
@@ -44,21 +44,22 @@ async function handle(request: Request, context: Context) {
     if (section === "feedback" && !id) {
       if (method === "GET") {
         const status = z.enum(["pending", "published", "hidden"]).parse(params.get("status") || "pending");
-        return json({ items: database().prepare("SELECT * FROM feedback WHERE status=? ORDER BY id DESC LIMIT 20 OFFSET ?").all(status, (page - 1) * 20), total: (database().prepare("SELECT count(*) AS n FROM feedback WHERE status=?").get(status) as { n: number }).n });
+        const db = await database();
+        return json({ items: (await db.query("SELECT * FROM feedback WHERE status=$1 ORDER BY id DESC LIMIT 20 OFFSET $2", [status, (page - 1) * 20])).rows, total: (await db.query("SELECT count(*)::int AS n FROM feedback WHERE status=$1", [status])).rows[0].n });
       }
       if (method === "PATCH") {
         const body = z.object({ id: z.number().int().positive(), status: z.enum(["published", "hidden"]) }).parse(await readJson(request));
-        if (!database().prepare("UPDATE feedback SET status=? WHERE id=?").run(body.status, body.id).changes) throw new CmsError(404, "反馈不存在。");
+        if (!(await (await database()).query("UPDATE feedback SET status=$1 WHERE id=$2", [body.status, body.id])).rowCount) throw new CmsError(404, "反馈不存在。");
         return json({ ok: true });
       }
     }
     if (section === "posts" || section === "projects") {
       const kind = section;
-      if (method === "GET" && id) return json(getContent(kind, id));
-      if (method === "POST" && !id) return json(createContent(kind), 201);
-      if (method === "PATCH" && id) return json(updateContent(kind, id, edit.parse(await readJson(request))));
+      if (method === "GET" && id) return json(await getContent(kind, id));
+      if (method === "POST" && !id) return json(await createContent(kind), 201);
+      if (method === "PATCH" && id) return json(await updateContent(kind, id, edit.parse(await readJson(request))));
       if (method === "GET") {
-        const entries = allContent(kind);
+        const entries = await allContent(kind);
         const query = (params.get("q") || "").toLocaleLowerCase();
         const status = params.get("status") || "all";
         const locale = params.get("locale");

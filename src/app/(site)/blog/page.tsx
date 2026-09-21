@@ -27,7 +27,7 @@ export default async function BlogPage({ searchParams }: { searchParams: BlogSea
   const { data: DATA, t, locale } = await getLanguage();
   const params = await searchParams;
   const category = first(params.category);
-  const posts = getPosts(locale);
+  const posts = await getPosts(locale);
   const filtered = filterArchivePosts(posts, category);
   // ponytail: render the whole archive; split by year if its size slows the initial load.
   const groups = groupArchivePosts(filtered, locale);

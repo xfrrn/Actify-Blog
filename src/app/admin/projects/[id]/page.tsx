@@ -6,7 +6,7 @@ export default async function EditProject({ params }: { params: Promise<{ id: st
   await requireAdminPage();
   const { id } = await params;
   let initial;
-  try { initial = getContent("projects", id); }
+  try { initial = await getContent("projects", id); }
   catch (error) { if (error instanceof CmsError && error.status === 404) notFound(); throw error; }
   return <ProjectEditor key={id} initial={initial} />;
 }

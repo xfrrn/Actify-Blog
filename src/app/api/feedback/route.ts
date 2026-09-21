@@ -12,8 +12,8 @@ const schema = z.object({
 export async function POST(request: Request) {
   try {
     const body = schema.parse(await readJson(request, 16384));
-    consumeLimit(`feedback:${clientIp(request)}`, 3, 60);
-    database().prepare("INSERT INTO feedback(pain_point,search_query,locale) VALUES (?,?,?)").run(body.painPoint, body.searchQuery, body.locale);
+    await consumeLimit(`feedback:${clientIp(request)}`, 3, 60);
+    await (await database()).query("INSERT INTO feedback(pain_point,search_query,locale) VALUES ($1,$2,$3)", [body.painPoint, body.searchQuery, body.locale]);
     return json({ ok: true }, 201);
   } catch (error) { return apiError(error); }
 }

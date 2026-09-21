@@ -16,14 +16,17 @@ export default async function FeedbackSection() {
           <p className="mt-3 text-sm text-muted-foreground">{t.feedbackEmpty}</p>
         ) : (
           <ul className="mt-4 divide-y">
-            {feedback.map((item) => (
+            {feedback.map((item) => {
+              const dateTime = item.created_at.includes("T") ? item.created_at : `${item.created_at.replace(" ", "T")}Z`;
+              return (
               <li key={item.id} className="py-4 first:pt-0">
                 <p lang={item.locale === "zh" ? "zh-CN" : "en"} className="whitespace-pre-wrap break-words text-sm leading-relaxed">{item.pain_point}</p>
-                <time dateTime={`${item.created_at.replace(" ", "T")}Z`} className="mt-2 block text-xs text-muted-foreground">
-                  {new Date(`${item.created_at.replace(" ", "T")}Z`).toLocaleDateString(locale === "zh" ? "zh-CN" : "en-US", { year: "numeric", month: "short", day: "numeric", timeZone: "UTC" })}
+                <time dateTime={dateTime} className="mt-2 block text-xs text-muted-foreground">
+                  {new Date(dateTime).toLocaleDateString(locale === "zh" ? "zh-CN" : "en-US", { year: "numeric", month: "short", day: "numeric", timeZone: "UTC" })}
                 </time>
               </li>
-            ))}
+              );
+            })}
           </ul>
         )}
       </div>

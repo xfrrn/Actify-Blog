@@ -12,7 +12,7 @@ export default async function Preview({ params, searchParams }: { params: Promis
   const { id } = await params;
   const locale = (await searchParams).locale === "en" ? "en" : "zh";
   let entry;
-  try { entry = getContent("posts", id); } catch (error) { if (error instanceof CmsError && error.status === 404) notFound(); throw error; }
+  try { entry = await getContent("posts", id); } catch (error) { if (error instanceof CmsError && error.status === 404) notFound(); throw error; }
   const post = entry.data[locale]; if (!post) notFound();
   const metadata = markdownMetadata(post.content);
   return <LanguageProvider locale={locale}><div className="mx-auto max-w-2xl px-6 py-12">

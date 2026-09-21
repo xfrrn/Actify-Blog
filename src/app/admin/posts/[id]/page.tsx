@@ -6,7 +6,7 @@ export default async function EditPost({ params }: { params: Promise<{ id: strin
   await requireAdminPage();
   const { id } = await params;
   let initial;
-  try { initial = getContent("posts", id); }
+  try { initial = await getContent("posts", id); }
   catch (error) { if (error instanceof CmsError && error.status === 404) notFound(); throw error; }
   return <PostEditor key={id} initial={initial} />;
 }

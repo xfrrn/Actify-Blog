@@ -2,13 +2,14 @@ import assert from "node:assert/strict";
 import { mkdtemp, readFile, writeFile, mkdir, readdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { DatabaseSync } from "node:sqlite";
 import sharp from "sharp";
 import { database, closeDatabase } from "../src/lib/cms-db.ts";
 import { uploadImage, listMedia } from "../src/lib/media.ts";
 import { mediaStorage } from "../src/lib/r2.ts";
 import { createBackup, restoreBackup } from "./admin.mjs";
+import { testDatabase } from "./postgres-test.mjs";
 
+const testDb = await testDatabase();
 const root = await mkdtemp(join(tmpdir(), "actify-r2-test-"));
 process.env.DATA_DIR = join(root, "data");
 process.env.MEDIA_STORAGE = "r2";
@@ -42,22 +43,19 @@ globalThis.fetch = async (request, init) => {
 };
 
 try {
-  // Open an actual pre-R2 schema to verify existing assets remain local and usable.
+  // Existing local assets remain usable alongside newly uploaded R2 objects.
   await mkdir(join(process.env.DATA_DIR, "uploads"), { recursive: true });
-  const legacy = new DatabaseSync(join(process.env.DATA_DIR, "actify.sqlite"));
-  legacy.exec("CREATE TABLE media(id TEXT PRIMARY KEY, filename TEXT UNIQUE NOT NULL, name TEXT, mime TEXT, size INTEGER, width INTEGER, height INTEGER, created_at TEXT)");
   const png = await sharp({ create: { width: 8, height: 6, channels: 3, background: "white" } }).png().toBuffer();
   const oldFilename = "11111111-1111-4111-8111-111111111111.png";
   await writeFile(join(process.env.DATA_DIR, "uploads", oldFilename), png);
-  legacy.prepare("INSERT INTO media VALUES ('legacy',?,'legacy.png','image/png',?,8,6,?)").run(oldFilename, png.length, new Date().toISOString());
-  legacy.close();
-  assert.equal(listMedia().items[0].storage, "local");
-  assert.equal(listMedia().items[0].url, `/media/${oldFilename}`);
+  await (await database()).query("INSERT INTO media(id,filename,name,mime,size,width,height,created_at) VALUES ('legacy',$1,'legacy.png','image/png',$2,8,6,$3)", [oldFilename, png.length, new Date().toISOString()]);
+  assert.equal((await listMedia()).items[0].storage, "local");
+  assert.equal((await listMedia()).items[0].url, `/media/${oldFilename}`);
 
   const media = await uploadImage(png, "new.png", "image/png");
   assert.equal(media.storage, "r2");
   assert.equal(media.url, `https://images.example.com/media/${media.filename}`);
-  assert.equal(listMedia().items.find((item) => item.id === media.id).url, media.url);
+  assert.equal((await listMedia()).items.find((item) => item.id === media.id).url, media.url);
   assert.ok(objects.has(`/test-media/media/${media.filename}`));
   await assert.rejects(readFile(join(process.env.DATA_DIR, "uploads", media.filename)), { code: "ENOENT" });
   const beforeInvalid = calls;
@@ -66,7 +64,7 @@ try {
 
   failure = 403;
   await assert.rejects(uploadImage(png, "denied.png", "image/png"), /403/);
-  assert.equal(listMedia().total, 2, "Failed R2 uploads do not create phantom media records");
+  assert.equal((await listMedia()).total, 2, "Failed R2 uploads do not create phantom media records");
   failure = 0;
   const secret = process.env.R2_SECRET_ACCESS_KEY;
   delete process.env.R2_SECRET_ACCESS_KEY;
@@ -78,18 +76,21 @@ try {
   const backup = await createBackup(join(root, "backup"));
   assert.equal((await readdir(join(backup, "uploads"))).length, 2);
   assert.deepEqual(await readFile(join(backup, "uploads", media.filename)), objects.get(`/test-media/media/${media.filename}`));
-  assert.ok(!JSON.stringify(listMedia()).includes(secret), "Credentials never appear in media responses");
+  assert.ok(!JSON.stringify(await listMedia()).includes(secret), "Credentials never appear in media responses");
+  await testDb.next();
   await restoreBackup(backup, join(root, "restored-existing"));
   objects.clear();
+  await testDb.next();
   await restoreBackup(backup, join(root, "restored-missing"));
   assert.deepEqual(objects.get(`/test-media/media/${media.filename}`), await readFile(join(backup, "uploads", media.filename)));
-  closeDatabase(); process.env.DATA_DIR = join(root, "restored-missing");
-  assert.equal(listMedia().total, 2);
-  assert.equal(listMedia().items.find((item) => item.id === media.id).url, media.url);
+  await closeDatabase(); process.env.DATA_DIR = join(root, "restored-missing");
+  assert.equal((await listMedia()).total, 2);
+  assert.equal((await listMedia()).items.find((item) => item.id === media.id).url, media.url);
   assert.ok((await readFile(join(process.env.DATA_DIR, "uploads", oldFilename))).length);
   objects.set(`/test-media/media/${media.filename}`, Buffer.from("different"));
+  await testDb.next();
   await assert.rejects(restoreBackup(backup, join(root, "conflict")), /未覆盖/);
   assert.equal(objects.get(`/test-media/media/${media.filename}`).toString(), "different");
-  assert.equal(database().prepare("SELECT count(*) AS n FROM media").get().n, 2);
-  console.log("R2 checks passed: legacy schema, signed uploads, public links, validation, failure isolation, mixed backups, remote restore and overwrite protection (mocked S3 transport).");
-} finally { globalThis.fetch = originalFetch; closeDatabase(); }
+  assert.equal((await (await database()).query("SELECT count(*)::int AS n FROM media")).rows[0].n, 0, "Failed restore must not import the database");
+  console.log("R2 checks passed: local assets, signed uploads, public links, validation, failure isolation, PostgreSQL backups, remote restore and overwrite protection (mocked S3 transport).");
+} finally { globalThis.fetch = originalFetch; await testDb.cleanup(); }

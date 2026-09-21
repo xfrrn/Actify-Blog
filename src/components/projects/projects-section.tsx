@@ -9,7 +9,7 @@ const BLUR_FADE_DELAY = 0.04;
 
 export default async function ProjectsSection({ featuredOnly = true }: { featuredOnly?: boolean }) {
     const { locale, t } = await getLanguage();
-    const projects = getProjects(locale, featuredOnly);
+    const projects = await getProjects(locale, featuredOnly);
     const Heading = featuredOnly ? "h2" : "h1";
     return (
         <section id="projects">

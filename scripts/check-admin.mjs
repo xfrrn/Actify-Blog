@@ -11,10 +11,12 @@ import { importRepository } from "../src/lib/cms-import.ts";
 import { setPassword } from "../src/lib/admin-auth.ts";
 import { database, closeDatabase } from "../src/lib/cms-db.ts";
 import { emptyTranslation } from "../src/lib/cms-types.ts";
+import { testDatabase } from "./postgres-test.mjs";
 
+const testDb = await testDatabase();
 process.env.DATA_DIR = await mkdtemp(join(tmpdir(), "actify-http-test-"));
 process.env.MEDIA_STORAGE = "local";
-importRepository(process.cwd());
+await importRepository(process.cwd());
 const password = "isolated-http-check-password";
 await setPassword(password);
 const socket = createServer(); await new Promise((resolve) => socket.listen(0, "127.0.0.1", resolve));
@@ -89,7 +91,7 @@ try {
   assert.equal((await request("/api/admin/media", "POST", {}, false)).status, 401);
   const r2Filename = "22222222-2222-4222-8222-222222222222.png";
   const r2Url = `https://images.example.com/media/${r2Filename}`;
-  database().prepare("INSERT INTO media(id,filename,name,mime,size,width,height,created_at,storage,url) VALUES ('r2-link',?,'r2.png','image/png',20,1,1,?,'r2',?)").run(r2Filename, new Date().toISOString(), r2Url);
+  await (await database()).query("INSERT INTO media(id,filename,name,mime,size,width,height,created_at,storage,url) VALUES ('r2-link',$1,'r2.png','image/png',20,1,1,$2,'r2',$3)", [r2Filename, new Date().toISOString(), r2Url]);
   const r2Redirect = await request(`/media/${r2Filename}`);
   assert.equal(r2Redirect.status, 302); assert.equal(r2Redirect.headers.get("location"), r2Url);
   assert.ok((await json(await request("/api/admin/media"))).items.some((item) => item.url === r2Url));
@@ -114,6 +116,8 @@ try {
   assert.ok(item); assert.doesNotMatch(await (await request("/")).text(), /测试反馈内容足够长/);
   await json(await request("/api/admin/feedback", "PATCH", { id: item.id, status: "published" }));
   const home = await (await request("/")).text(); assert.match(home, /测试反馈内容足够长/); assert.doesNotMatch(home, /PRIVATE-SEARCH-MARKER/);
+  assert.doesNotMatch(home, /Invalid Date|NaN/, "PostgreSQL feedback timestamps must render as valid dates");
+  assert.ok(home.includes(`dateTime="${item.created_at}"`), "ISO timestamps must not gain a second Z suffix");
   await json(await request("/api/admin/feedback", "PATCH", { id: item.id, status: "hidden" }));
   assert.doesNotMatch(await (await request("/")).text(), /测试反馈内容足够长/);
   for (let i = 0; i < 2; i++) assert.equal((await request("/api/feedback", "POST", feedback, false)).status, 201);
@@ -129,7 +133,7 @@ try {
     assert.match((await request(path)).headers.get("cache-control") || "", /no-store|private/, `${path} must bypass shared caches`);
   }
   const exited = once(server, "exit"); server.kill(); await exited;
-  closeDatabase(); server = start(); await ready();
+  await closeDatabase(); server = start(); await ready();
   assert.match(await (await request("/blog/http-publish-check")).text(), /新正文二/);
   assert.deepEqual(Buffer.from(await (await request(media.url)).arrayBuffer()), Buffer.from(await imageResponse.arrayBuffer()));
   assert.equal((await request(`/api/admin/posts/${entry.id}`)).status, 200, "Session and content survive process restart");
@@ -137,7 +141,7 @@ try {
   assert.equal((await once(siteCheck, "exit"))[0], 0, "Published site regression checks");
   assert.equal((await request("/api/admin/logout", "POST")).status, 200);
   assert.equal((await request("/api/admin/posts")).status, 401);
-  assert.equal(database().prepare("SELECT slug FROM content WHERE id=?").get(entry.id).slug, "http-publish-check");
+  assert.equal((await (await database()).query("SELECT slug FROM content WHERE id=$1", [entry.id])).rows[0].slug, "http-publish-check");
   console.log("Production HTTP checks passed: auth, origin checks, live publication, draft isolation, translations, RSS/sitemap/share images, projects, uploads, moderation, pagination, cache headers and restart persistence.");
 } catch (error) { console.error(output.slice(-6000)); throw error; }
-finally { server.kill(); closeDatabase(); }
+finally { if (server.exitCode === null) { const exited = once(server, "exit"); server.kill(); await exited; } await testDb.cleanup(); }

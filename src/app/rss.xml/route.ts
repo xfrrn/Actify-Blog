@@ -9,8 +9,8 @@ function escapeXml(value: string) {
   })[character]!);
 }
 
-export function GET() {
-  const items = getPosts().map((post) => {
+export async function GET() {
+  const items = (await getPosts()).map((post) => {
     const url = escapeXml(`${DATA.url}/blog/${post.slug}`);
     return `<item>
       <title>${escapeXml(post.title)}</title>

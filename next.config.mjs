@@ -3,7 +3,7 @@
 const nextConfig = {
   agentRules: false,
   reactStrictMode: true,
-  serverExternalPackages: ["sharp"],
+  serverExternalPackages: ["sharp", "pg"],
   async headers() {
     return [
       ...["/admin/:path*", "/api/:path*", "/rss.xml", "/sitemap.xml"].map((source) => ({

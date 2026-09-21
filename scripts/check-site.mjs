@@ -1,11 +1,16 @@
 import assert from "node:assert/strict";
 import { allContent, publishedContent } from "../src/lib/cms-store.ts";
 import { markdownMetadata } from "../src/lib/markdown.ts";
-const allPosts = allContent("posts").flatMap((entry) => Object.entries(entry.data).map(([language, draft]) => {
+import { closeDatabase } from "../src/lib/cms-db.ts";
+for (const file of [".env.local", ".env"]) {
+  try { process.loadEnvFile(file); } catch (error) { if (error.code !== "ENOENT") throw error; }
+}
+const allPosts = (await allContent("posts")).flatMap((entry) => Object.entries(entry.data).map(([language, draft]) => {
   const post = entry.published?.[language] || draft;
   return { ...post, slug: entry.slug, language, draft: !!entry.deletedAt || !entry.published?.[language], ...markdownMetadata(post.content) };
 }));
-const allProjects = publishedContent("projects").map((entry) => ({ ...entry.published, slug: entry.slug, draft: false }));
+const allProjects = (await publishedContent("projects")).map((entry) => ({ ...entry.published, slug: entry.slug, draft: false }));
+await closeDatabase();
 
 // Run against a running production server: node scripts/check-site.mjs http://localhost:3000
 const origin = process.argv[2] || "http://localhost:3000";

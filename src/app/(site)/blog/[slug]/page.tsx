@@ -19,7 +19,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const { locale } = await getLanguage();
-  const post = getPost(slug, locale);
+  const post = await getPost(slug, locale);
 
   if (!post) {
     notFound();
@@ -64,7 +64,7 @@ export default async function Blog({
 }) {
   const { t, locale } = await getLanguage();
   const { slug } = await params;
-  const sortedPosts = getPosts(locale);
+  const sortedPosts = await getPosts(locale);
   const currentIndex = sortedPosts.findIndex(
     (p) => p.slug === slug
   );

@@ -17,10 +17,12 @@
     "test:feedback": "node scripts/check-admin.mjs",
     "content:import": "node scripts/admin.mjs import",
     "feedback:import": "node scripts/admin.mjs import-feedback",
+    "data:migrate-sqlite": "node scripts/admin.mjs migrate-sqlite",
     "admin:password": "node scripts/admin.mjs password",
     "data:backup": "node scripts/admin.mjs backup",
     "data:restore": "node scripts/admin.mjs restore",
     "test:cms": "node scripts/check-cms.mjs",
+    "test:migration": "node scripts/check-migration.mjs",
     "test:r2": "node scripts/check-r2.mjs",
     "test:admin": "node scripts/check-admin.mjs"
   },
@@ -40,6 +42,7 @@
     "motion": "^12.23.27",
     "next": "16.3.5",
     "next-themes": "^0.4.6",
+    "pg": "^8.23.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "react-markdown": "^10.1.0",
@@ -57,6 +60,7 @@
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.19",
     "@types/node": "^25.0.3",
+    "@types/pg": "^8.23.1",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
     "eslint": "^9.39.2",

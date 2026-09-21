@@ -1,6 +1,6 @@
 import sharp from "sharp";
 import { randomUUID } from "node:crypto";
-import { writeFile, unlink } from "node:fs/promises";
+import { mkdir, writeFile, unlink } from "node:fs/promises";
 import { join } from "node:path";
 import { database, dataDirectory } from "./cms-db.ts";
 import { CmsError } from "./cms-store.ts";
@@ -23,15 +23,15 @@ export async function uploadImage(bytes: Buffer, name: string, mime: string) {
   } catch { throw new CmsError(400, "请选择有效的 JPEG、PNG、WebP 或 GIF 图片（最大 10MB，动画最多 100 帧）。"); }
   const id = randomUUID();
   const filename = `${id}.${format === "jpeg" ? "jpg" : format}`;
-  database();
-  const path = join(dataDirectory(), "uploads", filename);
+  const db = await database();
+  const path = storage === "local" ? join(dataDirectory(), "uploads", filename) : "";
   let url = `/media/${filename}`;
   if (storage === "r2") url = await writeR2Image(filename, types[format], output);
-  else await writeFile(path, output, { flag: "wx", mode: 0o600 });
+  else { await mkdir(join(dataDirectory(), "uploads"), { recursive: true, mode: 0o700 }); await writeFile(path, output, { flag: "wx", mode: 0o600 }); }
   const media: Media = { id, filename, storage, name: name.slice(0, 255), mime: types[format], size: output.length, width, height, created_at: new Date().toISOString(), url };
   try {
-    database().prepare("INSERT INTO media(id,filename,name,mime,size,width,height,created_at,storage,url) VALUES (?,?,?,?,?,?,?,?,?,?)")
-      .run(id, filename, media.name, media.mime, media.size, width, height, media.created_at, storage, url);
+    await db.query("INSERT INTO media(id,filename,name,mime,size,width,height,created_at,storage,url) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)",
+      [id, filename, media.name, media.mime, media.size, width, height, media.created_at, storage, url]);
   } catch (error) {
     if (storage === "local") await unlink(path);
     // A rare failed DB insert may leave an unreferenced R2 object; never delete a possibly referenced upload.
@@ -39,7 +39,8 @@ export async function uploadImage(bytes: Buffer, name: string, mime: string) {
   }
   return media;
 }
-export function listMedia(page = 1) {
-  const rows = database().prepare("SELECT * FROM media ORDER BY created_at DESC LIMIT 24 OFFSET ?").all((page - 1) * 24) as Media[];
-  return { items: rows.map((row) => ({ ...row, url: row.url || `/media/${row.filename}` })), total: (database().prepare("SELECT count(*) AS n FROM media").get() as { n: number }).n };
+export async function listMedia(page = 1) {
+  const db = await database();
+  const { rows } = await db.query<Media>("SELECT * FROM media ORDER BY created_at DESC, id DESC LIMIT 24 OFFSET $1", [(page - 1) * 24]);
+  return { items: rows.map((row) => ({ ...row, url: row.url || `/media/${row.filename}` })), total: (await db.query<{ n: number }>("SELECT count(*)::int AS n FROM media")).rows[0].n };
 }
