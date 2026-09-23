@@ -6,22 +6,18 @@ Actify 的个人网站、技术博客与中文内容后台。Next.js / React / T
 
 使用 Node.js 24、pnpm 10.33.3 和 PostgreSQL（已在 PostgreSQL 18 验证），先创建数据库 `actify_blog`：
 
-配置好 `DATABASE_URL` 后，开发和生产服务在启动时自动创建缺失的表与索引，保留已有数据，无需手动运行迁移文件。数据库账号需有建表权限；`content:import` 仅用于可选的初始内容导入，`admin:password` 用于设置后台密码。
+配置好 `DATABASE_URL` 后，开发和生产服务在启动时自动创建缺失的表与索引，保留已有数据，无需手动运行迁移文件。数据库账号需有建表权限。后台账号和密码直接填写 `ADMIN_USERNAME`、`ADMIN_PASSWORD`，无需初始化命令。
 
 ```sh
 pnpm install --frozen-lockfile
 cp .env.example .env.local
-# 编辑 .env.local，填写 DATABASE_URL 后继续；已有配置不要覆盖。
-pnpm content:import
-pnpm admin:password
+# 编辑 .env.local，填写数据库连接、后台账号和密码；已有配置不要覆盖。
 pnpm dev
 ```
 
-Windows PowerShell 首次配置使用 `Copy-Item .env.example .env.local`。打开 `http://localhost:3000/admin`，使用刚设置的密码登录。内容保存在 `DATABASE_URL` 指定的 PostgreSQL 数据库，本地图片默认在被 Git 忽略的 `.data/uploads/`。数据库密码与后台登录密码分别设置。
+Windows PowerShell 首次配置使用 `Copy-Item .env.example .env.local`。打开 `http://localhost:3000/admin`，使用环境变量中的账号和密码登录。内容保存在 `DATABASE_URL` 指定的 PostgreSQL 数据库，本地图片默认在被 Git 忽略的 `.data/uploads/`。数据库密码与后台登录密码分别设置。
 
-已有 SQLite 内容时，先运行 `pnpm data:migrate-sqlite .data/actify.sqlite`，再运行 `content:import`；迁移保留文章、草稿、发布快照、反馈、素材记录和密码哈希，原文件不变。详见 [迁移说明](docs/admin.md#从-sqlite-迁移)。
-
-`content:import` 导入仓库现有文章、作品及中英文关系，保留地址和草稿状态。可以重复执行，已导入或在后台修改的内容不会被覆盖。之后在后台写作，修改已经导入的源文件不会更新网站。
+文章和作品只保存在数据库，通过后台创建和编辑。新数据库初始没有内容；迁移到其他服务器时使用数据库备份恢复，Git 只同步代码。
 
 ## 内容管理
 
@@ -43,14 +39,12 @@ Markdown 支持目录、GFM 表格、任务列表、代码高亮和代码标题�
 
 ## 部署与数据
 
-生产环境设置 `DATABASE_URL`、公开来源 `SITE_ORIGIN` 和保存旧本地图片的持久化目录 `DATA_DIR`，通过 HTTPS 登录。素材使用 R2 的 S3 API 上传，读者直接通过图片公开域名加载；本地开发可用 `MEDIA_STORAGE=local`。配置见 [部署说明](docs/admin.md)。代码升级需要构建，内容发布直接更新 PostgreSQL。
+生产环境设置 `DATABASE_URL`、公开来源 `SITE_ORIGIN` 和 R2 配置，通过 HTTPS 登录。素材使用 R2 的 S3 API 上传，读者直接通过图片公开域名加载，无需配置本地图片目录；本地开发可用 `MEDIA_STORAGE=local`，图片默认保存在 `.data/uploads/`。配置见 [部署说明](docs/admin.md)。代码升级需要构建，内容发布直接更新 PostgreSQL。
 
 - [后台、美国服务器部署、Cloudflare 缓存、备份恢复](docs/admin.md)
-- [反馈审核与旧 D1 迁移](docs/feedback.md)
+- [反馈审核](docs/feedback.md)
 - [源码结构](docs/structure.md)
 - [SEO 与域名验收](docs/seo-launch.md)
-
-旧 OpenNext / Workers 运行方式已移除。`wrangler.jsonc` 和 `migrations/` 仅保留用于旧 D1 数据导出。
 
 ## 检查
 
@@ -58,13 +52,12 @@ Markdown 支持目录、GFM 表格、任务列表、代码高亮和代码标题�
 pnpm lint
 pnpm typecheck
 pnpm test:cms
-pnpm test:migration
 pnpm test:r2
 pnpm build
 pnpm test:admin
 ```
 
-测试使用真实 PostgreSQL，通过 `TEST_DATABASE_URL`（未设置时使用 `DATABASE_URL`）的账号创建随机临时库并在结束后清理，需要 CREATEDB 权限，不操作原库内容。备份检查需要 `pg_dump` / `pg_restore` 在 PATH 中，或设置 `PG_BIN_DIR`。覆盖 SQLite 迁移、并发保存与限流、草稿隔离、中英文发布、鉴权、图片解码、反馈审核、生产 HTTP 输出、重启与备份恢复。`test:r2` 仅模拟 S3 传输，不会使用真实 R2 密钥或存储桶；`test:admin` 自动启动和关闭临时生产服务，需要先构建。
+测试使用真实 PostgreSQL，通过 `TEST_DATABASE_URL`（未设置时使用 `DATABASE_URL`）的账号创建随机临时库并在结束后清理，需要 CREATEDB 权限，不操作原库内容。备份检查需要 `pg_dump` / `pg_restore` 在 PATH 中，或设置 `PG_BIN_DIR`。覆盖启动自动建表、并发保存与限流、草稿隔离、中英文发布、鉴权、图片解码、反馈审核、生产 HTTP 输出、重启与备份恢复。`test:r2` 仅模拟 S3 传输，不会使用真实 R2 密钥或存储桶；`test:admin` 自动启动和关闭临时生产服务，需要先构建。
 
 站点检查：使用与生产服务相同的 `DATABASE_URL`，执行 `node scripts/check-site.mjs http://localhost:3000`，验证 SEO、SSR、语言、RSS、站点地图、分享图和 404。不会修改内容；连接时会初始化缺少的 CMS 表。
 
@@ -72,4 +65,3 @@ pnpm test:admin
 
 - 基于 [Magic UI Portfolio](https://github.com/dillionverma/portfolio) 二次开发，感谢原作者 Dillion Verma。
 - 保留原项目 MIT 许可证及版权声明，详见 [LICENSE](LICENSE)。
-- 标题带 `Example:` 的文章是写作与排版示例，默认草稿，不代表个人作品或经历。

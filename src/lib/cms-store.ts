@@ -6,7 +6,8 @@ import type { PoolClient } from "pg";
 
 export class CmsError extends Error {
   status: number;
-  constructor(status: number, message: string) { super(message); this.status = status; }
+  retryAfter?: number;
+  constructor(status: number, message: string, retryAfter?: number) { super(message); this.status = status; this.retryAfter = retryAfter; }
 }
 type Row = { id: string; kind: Kind; slug: string; locked: boolean; version: number; data: PostData | ProjectData; published: PostData | ProjectData | null; deleted_at: string | null; updated_at: string };
 function record<K extends Kind>(row: Row): ContentRecord<K> {

@@ -26,7 +26,7 @@
 
 ## 内容与检查
 
-- 初次导入保留示例草稿与现有公开文章。sitemap 实时读取 PostgreSQL 的已发布数据，后台发布或撤回后新请求自动更新，无需构建。文章地址在首次发布后锁定。
+- 文章和作品在后台管理，草稿不会公开。sitemap 实时读取 PostgreSQL 的已发布数据，后台发布或撤回后新请求自动更新，无需构建。文章地址在首次发布后锁定。
 - Next.js 原生 Metadata API 将根 canonical 序列化为 `https://actify.cc`，与 `https://actify.cc/` 是同一根 URL；sitemap 沿用相同写法。其他页面不带末尾斜杠。
 - 主要页面使用 Next.js Metadata API，文章 title、description、日期来自数据库的已发布快照；正文服务端渲染。首页输出真实 WebSite / Person，文章保留 BlogPosting。未添加虚构评价或 FAQ；当前无面包屑 UI，无需额外增加 BreadcrumbList。
 - `/blog?category=...` 的 `noindex, follow` 是有意排除筛选视图；`/admin/feedback` 和反馈 API 的 noindex 是有意保护非搜索页面。它们不在 sitemap。404 也应 noindex。
@@ -38,19 +38,8 @@
 npm run lint
 npm run typecheck
 npm run build
-npm run test:content
+npm run test:cms
 node scripts/check-site.mjs http://localhost:3000
 ```
 
-`pnpm test:admin`（或 `test:feedback`）在构建后自动创建临时 PostgreSQL 数据库并启动生产服务，账号需有 CREATEDB 权限，不需要 D1。运行 `check-site.mjs` 时设置与被检查服务相同的 `DATABASE_URL`；它不修改内容，连接时会初始化缺少的 CMS 表。
-
-## 2026-09-18 验收结果
-
-以下是迁移到 SQLite 之前的历史记录，不代表当前线上状态或新后台的部署结果。
-
-- `npm run lint`、`npm run typecheck`、`npm run build`、`npm run test:content`、本地 `npm run test:feedback -- http://localhost:3100` 全部通过。使用 npm 执行同一组 package scripts，避免当前 pnpm 包装器自动重装依赖。
-- `node scripts/check-site.mjs http://localhost:3100` 通过：正常页 200、canonical、Open Graph / Twitter、robots、sitemap、H1 / 图片 alt、结构化数据、中英文 SSR、分享图片与真实 404（普通浏览器、Googlebot、Twitterbot）。
-- 临时加入两篇不同语言、不同 slug 的文章，确认文章正文、独立 metadata、BlogPosting 和 sitemap 自动纳入；随后删除临时文件，重新构建并通过最终验收。原有三篇草稿未修改。
-- 修复了本地 Next.js 依赖中缺失的 `Geist-Regular.ttf` 文件名（现有 `.ttf.bin` 经 TrueType 文件头验证后复制）；此修复仅在被忽略的 `node_modules`，不属于源码改动。Wrangler 本地日志与配置目录指向仓库内被忽略的 `.wrangler`。
-- Windows curl 的 HTTPS 请求遇到系统凭据错误，改用 Node fetch 成功验证线上；HTTPS 主站、robots、sitemap 为 200，线上公开页面 canonical 域名正确。HTTP 首页和 Blog 仍直接返回 200，www DNS 为 ENOTFOUND，域名归一化尚未验收通过。
-- `git diff --check` 通过。本次提交仅涉及 SEO；工作区原有反馈功能与 UI 改动保留、不纳入提交。线上重定向的上述结果为验收当时状态，Cloudflare 手动配置后仍需复测；不执行 push 或部署。
+`pnpm test:admin`（或 `test:feedback`）在构建后自动创建临时 PostgreSQL 数据库并启动生产服务，账号需有 CREATEDB 权限。运行 `check-site.mjs` 时设置与被检查服务相同的 `DATABASE_URL`；它不修改内容，连接时会初始化缺少的 CMS 表。

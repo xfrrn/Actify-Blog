@@ -2,10 +2,14 @@ import { ZodError } from "zod";
 import { CmsError } from "./cms-store.ts";
 
 export function json(data: unknown, status = 200) {
-  return Response.json(data, { status, headers: { "Cache-Control": "no-store", "X-Robots-Tag": "noindex", ...(status === 429 ? { "Retry-After": "600" } : {}) } });
+  return Response.json(data, { status, headers: { "Cache-Control": "no-store", "X-Robots-Tag": "noindex" } });
 }
 export function apiError(error: unknown) {
-  if (error instanceof CmsError) return json({ error: error.message }, error.status);
+  if (error instanceof CmsError) {
+    const response = json({ error: error.message }, error.status);
+    if (error.retryAfter) response.headers.set("Retry-After", String(error.retryAfter));
+    return response;
+  }
   if (error instanceof ZodError) return json({ error: error.issues.map((issue) => `${issue.path.join(".")}: ${issue.message}`).join("；") }, 400);
   console.error("CMS request failed", error instanceof Error ? error.message : "unknown error");
   return json({ error: "暂时无法完成操作，请稍后重试。" }, 500);

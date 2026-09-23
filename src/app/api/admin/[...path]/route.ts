@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { json, apiError, checkOrigin, readBytes, readJson } from "@/lib/admin-http";
-import { requireSession, login, logout, requestToken, sessionCookie, sessionSeconds, clientIp } from "@/lib/admin-auth";
+import { requireSession, login, logout, requestToken, sessionCookie, sessionSeconds, clientIp, consumeLimit } from "@/lib/admin-auth";
 import { allContent, createContent, getContent, updateContent, CmsError } from "@/lib/cms-store";
 import { database } from "@/lib/cms-db";
 import { listMedia, uploadImage } from "@/lib/media";
@@ -22,20 +22,24 @@ async function handle(request: Request, context: Context) {
     const method = request.method;
     if (method !== "GET") checkOrigin(request);
     if (section === "login" && method === "POST" && !id) {
-      const { password } = z.object({ password: z.string().min(1).max(256) }).parse(await readJson(request, 4096));
-      const token = await login(password, clientIp(request));
+      await consumeLimit(`login:${clientIp(request)}`, 10, 600);
+      await consumeLimit("login:global", 100, 600);
+      const { username, password } = z.object({ username: z.string().min(1).max(128), password: z.string().min(1).max(256) }).parse(await readJson(request, 4096));
+      const token = await login(username, password);
       const response = json({ ok: true }); response.headers.set("Set-Cookie", cookie(token, sessionSeconds)); return response;
     }
     await requireSession(request);
     if (section === "logout" && method === "POST" && !id) {
       await logout(requestToken(request)); const response = json({ ok: true }); response.headers.set("Set-Cookie", cookie("", 0)); return response;
     }
+    if (method !== "GET") await consumeLimit("admin:write", 120, 60);
     const params = new URL(request.url).searchParams;
     const page = pageNumber(params);
     if (section === "session" && method === "GET" && !id) return json({ pending: (await (await database()).query("SELECT count(*)::int AS n FROM feedback WHERE status='pending'")).rows[0].n });
     if (section === "media" && !id) {
       if (method === "GET") return json(await listMedia(page));
       if (method === "POST") {
+        await consumeLimit("admin:upload", 20, 60);
         let name = "image";
         try { name = decodeURIComponent(request.headers.get("x-filename") || name); } catch { throw new CmsError(400, "文件名无效。"); }
         return json(await uploadImage(await readBytes(request, 10 * 1024 * 1024), name, request.headers.get("content-type") || ""), 201);

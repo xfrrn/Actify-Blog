@@ -92,5 +92,11 @@ try {
   await assert.rejects(restoreBackup(backup, join(root, "conflict")), /未覆盖/);
   assert.equal(objects.get(`/test-media/media/${media.filename}`).toString(), "different");
   assert.equal((await (await database()).query("SELECT count(*)::int AS n FROM media")).rows[0].n, 0, "Failed restore must not import the database");
-  console.log("R2 checks passed: local assets, signed uploads, public links, validation, failure isolation, PostgreSQL backups, remote restore and overwrite protection (mocked S3 transport).");
+  delete process.env.DATA_DIR;
+  process.env.NODE_ENV = "production";
+  const r2Only = await uploadImage(png, "r2-only.png", "image/png");
+  assert.equal(r2Only.storage, "r2");
+  const r2OnlyBackup = await createBackup(join(root, "r2-only-backup"));
+  assert.deepEqual(await readFile(join(r2OnlyBackup, "uploads", r2Only.filename)), objects.get(`/test-media/media/${r2Only.filename}`), "Production R2 upload and backup work without DATA_DIR");
+  console.log("R2 checks passed: local assets, signed uploads, public links, validation, failure isolation, PostgreSQL backups, remote restore, overwrite protection and production without DATA_DIR (mocked S3 transport).");
 } finally { globalThis.fetch = originalFetch; await testDb.cleanup(); }

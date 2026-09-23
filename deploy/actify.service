@@ -8,7 +8,6 @@ User=actify
 Group=actify
 WorkingDirectory=/opt/actify
 Environment=NODE_ENV=production
-Environment=DATA_DIR=/var/lib/actify
 Environment=SITE_ORIGIN=https://actify.cc
 Environment=TRUST_PROXY=1
 Environment=MEDIA_STORAGE=r2

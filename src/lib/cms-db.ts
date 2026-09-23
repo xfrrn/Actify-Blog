@@ -2,7 +2,6 @@ import { Pool, type PoolClient } from "pg";
 import { resolve } from "node:path";
 
 export function dataDirectory() {
-  if (!process.env.DATA_DIR && process.env.NODE_ENV === "production") throw new Error("Set DATA_DIR to a persistent directory for legacy local uploads.");
   return resolve(/* turbopackIgnore: true */ process.env.DATA_DIR || ".data");
 }
 
@@ -41,8 +40,6 @@ export async function database() {
     );
     CREATE TABLE IF NOT EXISTS sessions (hash TEXT PRIMARY KEY, expires BIGINT NOT NULL, credential TEXT NOT NULL);
     CREATE TABLE IF NOT EXISTS rate_limits (key TEXT PRIMARY KEY, count INTEGER NOT NULL, expires BIGINT NOT NULL);
-    CREATE TABLE IF NOT EXISTS imports (source TEXT PRIMARY KEY, imported_at TEXT NOT NULL);
-    CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
         `);
         await client.query("COMMIT");
       } catch (error) { await client.query("ROLLBACK"); throw error; }

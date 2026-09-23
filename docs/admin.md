@@ -12,7 +12,7 @@
 
 ## 数据与命令
 
-`DATABASE_URL` 指定 PostgreSQL 数据库，保存内容、反馈、密码哈希、会话、限流和导入记录。`pnpm dev` / `pnpm start` / systemd 启动时自动创建缺少的 CMS 表和索引，完成后才处理应用请求；不需要手动执行 SQL 或迁移文件。已有表和数据保留，多个进程同时启动时通过事务锁串行建表；建表失败会阻止启动并报告错误。数据库本身与账号需预先准备，应用账号需要建表权限。CLI 首次连接也复用同一逻辑。应用使用连接池，不在客户端暴露连接地址。
+`DATABASE_URL` 指定 PostgreSQL 数据库，保存内容、反馈、会话和限流记录。`pnpm dev` / `pnpm start` / systemd 启动时自动创建缺少的 CMS 表和索引，完成后才处理应用请求；不需要手动执行 SQL 或迁移文件。已有表和数据保留，多个进程同时启动时通过事务锁串行建表；建表失败会阻止启动并报告错误。数据库本身与账号需预先准备，应用账号需要建表权限。CLI 首次连接也复用同一逻辑。应用使用连接池，不在客户端暴露连接地址。
 
 ```dotenv
 DATABASE_URL=postgresql://actify:替换为实际密码@127.0.0.1:5432/actify_blog
@@ -20,31 +20,24 @@ DATABASE_URL=postgresql://actify:替换为实际密码@127.0.0.1:5432/actify_blo
 
 密码中的 `@`、`:`、`/`、`#` 等字符需做 URL 编码。开发凭据只放被 Git 忽略的 `.env.local`。服务器只在本机开放 PostgreSQL，应用通过 `127.0.0.1:5432` 连接；远程数据库使用带证书校验的 TLS 连接。
 
-`DATA_DIR/uploads/` 仅保存本地开发图片与旧素材，生产设为代码外持久化目录，例如 `/var/lib/actify`，开发默认 `.data/`。数据库文件由 PostgreSQL 管理，不放进应用目录。CLI 读取 `.env.local` / `.env`，进程环境变量优先。
+图片全部使用 R2 时无需配置本地目录。本地开发图片与旧素材默认保存在 `.data/uploads/`；只有需要保留本地图片时，才额外设置 `DATA_DIR` 指向持久化目录，例如 `/var/lib/actify`。数据库文件由 PostgreSQL 管理，不放进应用目录。CLI 读取 `.env.local` / `.env`，进程环境变量优先。
 
 线上新图片存储在 R2，PostgreSQL 保留文件名、尺寸、类型、存储位置和永久公开 URL。素材库、封面和正文直接使用这个 URL。旧本地记录继续从 `/media/` 读取，不删除已有文件。
 
 ```sh
-pnpm content:import
-pnpm admin:password
-pnpm feedback:import /private/feedback-export.json
 pnpm data:backup /private/backups/actify-2026-09-21
 ```
 
-密码交互输入两次且隐藏，只保存 scrypt 哈希。重设密码注销全部会话。自动配置可临时传 `ADMIN_SETUP_PASSWORD`，使用后移除；不写入仓库或客户端变量。会话有效期 7 天，生产 Cookie 为 HttpOnly / Secure / SameSite=Strict。
+后台账号和密码直接配置在本地 `.env.local`（也支持 `.env`）或服务器 `/etc/actify.env`：
 
-## 从 SQLite 迁移
-
-先停止旧应用写入，配置指向空 PostgreSQL 数据库的 `DATABASE_URL`，让 `DATA_DIR/uploads/` 保持包含旧图片。然后执行：
-
-```sh
-pnpm data:migrate-sqlite .data/actify.sqlite
-pnpm content:import
+```dotenv
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=
 ```
 
-迁移在单个事务内写入，保留文章 ID、地址、中英文草稿、发布快照、版本、日期、回收站状态、作品、反馈、素材和密码哈希；反馈 ID 序列同步调整。旧会话和限流记录不迁移，需重新登录。源 SQLite 只读打开，保留原文件；图片文件不移动。迁移成功后重复执行跳过，不覆盖后台新修改；目标已有内容但没有迁移标记时拒绝导入，失败回滚全部记录。
+填入 12–256 个字符的独立强密码，不要留空；账号最长 128 个字符，区分大小写。未配置或密码长度不合要求时拒绝登录，不使用默认密码。修改账号或密码后重启服务，旧会话失效。凭据仅从服务端环境变量读取，使用 scrypt 和恒定时间比较校验；会话只存令牌哈希和凭据指纹。会话有效期 7 天，生产 Cookie 为 HttpOnly / Secure / SameSite=Strict。
 
-旧 SQLite 备份需先校验并保留原文件，再对其中的 `actify.sqlite` 执行此命令，并将旧本地 `uploads/` 复制到 `DATA_DIR/uploads/`。新的 `data:restore` 只接收 PostgreSQL 格式备份。
+保护自动启用：登录每 IP 最多 10 次 / 10 分钟、全站最多 100 次 / 10 分钟；后台写入最多 120 次 / 分钟，图片上传最多 20 次 / 分钟。错误格式的登录请求也计数，账号和密码错误使用相同提示。限流计数保存在 PostgreSQL，重启不清零，超限返回 429 和 Retry-After。退出登录不受写入限流影响。写入接口同时校验来源和请求大小。
 
 ## Cloudflare R2 素材
 
@@ -109,7 +102,7 @@ caddy version
 
 ```sh
 sudo useradd --system --create-home --shell /bin/bash actify
-sudo install -d -o actify -g actify -m 700 /var/lib/actify /var/backups/actify
+sudo install -d -o actify -g actify -m 700 /var/backups/actify
 sudo install -d -o actify -g actify /opt/actify
 sudo -u actify git clone https://github.com/xfrrn/Actify-Blog.git /opt/actify
 # 仅在新服务器上创建应用账号与数据库，已有数据库不用重复创建：
@@ -121,11 +114,12 @@ sudo -u postgres createdb --owner=actify actify_blog
 
 ### 3. 配置生产环境
 
-用 `sudoedit /etc/actify.env` 写入以下配置，填入独立数据库密码与前面说明的 R2 S3 凭据：
+用 `sudoedit /etc/actify.env` 写入以下配置，填入数据库连接、后台账号密码与前面说明的 R2 S3 凭据：
 
 ```dotenv
 DATABASE_URL=postgresql://actify:替换为实际密码@127.0.0.1:5432/actify_blog
-DATA_DIR=/var/lib/actify
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=
 SITE_ORIGIN=https://actify.cc
 TRUST_PROXY=1
 MEDIA_STORAGE=r2
@@ -137,7 +131,7 @@ R2_PUBLIC_URL=https://img.actify.cc
 GOOGLE_SITE_VERIFICATION=
 ```
 
-数据库密码中的特殊字符需要 URL 编码；`SITE_ORIGIN` 必须与后台访问地址完全相同，不加末尾 `/`。代码里的正式域名也在 `src/data/site.tsx`，换域名时一并修改。然后限制环境文件权限：
+填写 `ADMIN_PASSWORD` 后再启动。数据库密码中的特殊字符需要 URL 编码；`SITE_ORIGIN` 必须与后台访问地址完全相同，不加末尾 `/`。代码里的正式域名也在 `src/data/site.tsx`，换域名时一并修改。然后限制环境文件权限：
 
 ```sh
 sudo chown root:actify /etc/actify.env
@@ -146,18 +140,16 @@ sudo chmod 640 /etc/actify.env
 
 ### 4. 初始化并启动应用
 
-缺失的表由服务启动时自动创建。下面的 `import` 仅用于导入仓库文章与作品，可省略；`password` 用于首次设置或重设后台登录密码，均不是建表迁移命令。`data:migrate-sqlite` 仅在需要搬迁旧 SQLite 数据时使用。
+缺失的表由服务启动时自动创建，后台使用环境变量中的账号和密码登录。新数据库没有文章和作品，启动后在后台添加。
 
 ```sh
 cd /opt/actify
 sudo -u actify pnpm install --frozen-lockfile
 ```
 
-如果要保留本地后台已编辑的内容，先在原环境运行 `pnpm data:backup <新目录>`，将完整备份私下传到服务器，按后文恢复到空数据库和空 DATA_DIR，再执行下面的导入与构建；`import` 只导入仓库源文件，不会同步本地 PostgreSQL。已有 SQLite 则先按上节迁移。首次上线只使用仓库内容时，直接执行：
+如果要保留已有内容，先在原环境运行 `pnpm data:backup <新目录>`，将完整备份私下传到服务器，按后文恢复到空数据库和空的本地恢复目录，再执行下面的构建与启动。Git 只同步代码，不包含数据库内容；全新站点可直接执行：
 
 ```sh
-sudo -u actify node --env-file=/etc/actify.env scripts/admin.mjs import
-sudo -u actify node --env-file=/etc/actify.env scripts/admin.mjs password
 sudo -u actify node --env-file=/etc/actify.env node_modules/next/dist/bin/next build
 sudo cp deploy/actify.service /etc/systemd/system/actify.service
 sudo systemctl daemon-reload
@@ -189,7 +181,7 @@ sudo systemctl reload caddy
 
 若要一直保留橙云，可为 Caddy 配置 Cloudflare Origin CA 证书（显式 `tls <证书路径> <私钥路径>`，需 caddy 用户可读），或沿用已有 DNS 验证方案；Origin CA 证书供 Cloudflare 回源使用，浏览器不能直接信任它。参考 [Origin CA](https://developers.cloudflare.com/ssl/origin-configuration/origin-ca/)。
 
-Cloudflare SSL/TLS 选 **Full (strict)**，要求源站证书未过期且匹配域名。[官方说明](https://developers.cloudflare.com/ssl/origin-configuration/ssl-modes/full-strict/)。若仍有旧 Worker，在切换前冻结旧站反馈写入，最后导出 D1、导入新库，再解绑同域名 Custom Domain / Route 并改 DNS。命令见 [反馈迁移](feedback.md)。保留旧 D1 至迁移验收完成；域名归一化和 Search Console 见 [SEO 文档](seo-launch.md)。
+Cloudflare SSL/TLS 选 **Full (strict)**，要求源站证书未过期且匹配域名。[官方说明](https://developers.cloudflare.com/ssl/origin-configuration/ssl-modes/full-strict/)。若域名仍绑定旧 Worker，解绑其 Custom Domain / Route 后将 DNS 指向新服务器。域名归一化和 Search Console 见 [SEO 文档](seo-launch.md)。
 
 按下一节配置缓存后，访问 `https://actify.cc/admin`，验证登录、草稿发布、图片上传和中英文页面，并运行：
 
@@ -199,8 +191,6 @@ sudo -u actify node --env-file=/etc/actify.env scripts/check-site.mjs http://127
 sudo journalctl -u actify -n 100 --no-pager
 sudo journalctl -u caddy -n 100 --no-pager
 ```
-
-仓库还保留 [Nginx 示例](../deploy/nginx.conf) 供其他环境使用；本部署流程由现有 Caddy 监听 80/443。
 
 ## Cloudflare 缓存
 
@@ -226,11 +216,11 @@ cd /opt/actify
 sudo -u actify /usr/bin/node --env-file=/etc/actify.env scripts/admin.mjs backup /var/backups/actify/manual-2026-09-21
 ```
 
-定期把完整目录复制到服务器外的私有存储。备份含未公开内容、搜索词和密码哈希，不提供公开下载。仓库 public 文件随代码部署；已有外部媒体仍依赖原图片服务，不包含在本地上传备份中。
+定期把完整目录复制到服务器外的私有存储。备份含未公开内容和搜索词，从旧版本升级的数据库备份还可能包含历史密码哈希，不提供公开下载。仓库 public 文件随代码部署；已有外部媒体仍依赖原图片服务，不包含在本地上传备份中。
 
-恢复先验证全部哈希和图片引用，通过 `pg_restore --single-transaction` 写入空 PostgreSQL 数据库，并清空会话。只恢复自己创建或信任的备份。R2 素材恢复到原桶和原公开域名：缺失对象会重新上传；已有对象逐字节一致时复用，不一致则报错，绝不覆盖。需要原桶的读写凭据，数据库连接密码和 R2 密钥不包含在备份中。保持原图片域名有效，正文里的公开 URL 才继续可用。
+恢复先验证全部哈希和图片引用，通过 `pg_restore --single-transaction` 写入空 PostgreSQL 数据库，并清空会话。只恢复自己创建或信任的备份。R2 素材恢复到原桶和原公开域名：缺失对象会重新上传；已有对象逐字节一致时复用，不一致则报错，绝不覆盖。需要原桶的读写凭据；环境变量中的后台账号密码、数据库连接密码和 R2 密钥不包含在备份中。保持原图片域名有效，正文里的公开 URL 才继续可用。
 
-恢复必须同时指定**无应用表的空数据库**和**不存在或空 DATA_DIR**，保留原数据库。示例：
+恢复需要**无应用表的空数据库**和**不存在或空的本地恢复目录**（默认 `.data`，可用 `DATA_DIR` 修改），保留原数据库。示例使用独立目录：
 
 ```sh
 sudo systemctl stop actify
@@ -246,7 +236,7 @@ sudo systemctl start actify
 
 该示例将恢复库和恢复目录作为新的持久化存储；后续备份另选 DATA_DIR 之外的新目录。保留旧库，核对文章、译文、作品、反馈、图片，重启后再检查。失败可停服务切回旧 DATABASE_URL / DATA_DIR。文件移动失败时暂存图片仍保留，不自动删除；修正目录问题后核对再启动。
 
-代码升级：先备份，停止服务，更新代码和依赖并构建，启动服务。保留 PostgreSQL 数据库与 DATA_DIR，不从仓库覆盖后台内容。日志：`journalctl -u actify -n 100`。
+代码升级：先备份，停止服务，更新代码和依赖并构建，启动服务。保留 PostgreSQL 数据库、R2 图片及已有的本地图片目录，不从仓库覆盖后台内容。日志：`journalctl -u actify -n 100`。
 
 ## 验收
 
@@ -254,7 +244,6 @@ sudo systemctl start actify
 pnpm lint
 pnpm typecheck
 pnpm test:cms
-pnpm test:migration
 pnpm test:r2
 pnpm build
 pnpm test:admin
@@ -262,7 +251,7 @@ pnpm test:admin
 
 测试连接取 `TEST_DATABASE_URL`，未设置时取 `DATABASE_URL`。测试账号需有 CREATEDB 权限：每次创建随机 `actify_test_*` 库，结束只清理本次创建的库，不操作原博客库。生产账号不必有此权限，另行配置测试账号即可。
 
-核心测试验证真实并发保存、限流、pg_dump 备份和 pg_restore 恢复，并拒绝损坏备份。迁移检查核对 SQLite 草稿、发布快照、密码、旧素材、反馈 ID、重复导入与事务回滚。R2 测试使用假凭据和模拟传输，核对 S3 签名、上传失败、混合备份与不覆盖恢复。HTTP 测试启动隔离的生产服务，验证权限、来源、动态发布、译文、RSS / sitemap / 分享图、作品、媒体、审核，重启后再读内容与图片。
+核心测试验证真实并发保存、限流、pg_dump 备份和 pg_restore 恢复，并拒绝损坏备份。R2 测试使用假凭据和模拟传输，核对 S3 签名、上传失败、混合备份与不覆盖恢复。HTTP 测试从空数据库启动，验证自动建表、权限、来源、动态发布、译文、RSS / sitemap / 分享图、作品、媒体、审核，重启后检查缺失表补齐、内容与图片保留。
 
 完整站点检查使用与运行服务相同的 DATABASE_URL，不修改内容；连接时会初始化缺少的 CMS 表：
 

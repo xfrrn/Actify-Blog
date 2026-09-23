@@ -13,16 +13,10 @@
     "lint": "eslint",
     "lint:fix": "eslint --fix",
     "typecheck": "next typegen && tsc --noEmit",
-    "test:content": "node scripts/check-cms.mjs",
     "test:feedback": "node scripts/check-admin.mjs",
-    "content:import": "node scripts/admin.mjs import",
-    "feedback:import": "node scripts/admin.mjs import-feedback",
-    "data:migrate-sqlite": "node scripts/admin.mjs migrate-sqlite",
-    "admin:password": "node scripts/admin.mjs password",
     "data:backup": "node scripts/admin.mjs backup",
     "data:restore": "node scripts/admin.mjs restore",
     "test:cms": "node scripts/check-cms.mjs",
-    "test:migration": "node scripts/check-migration.mjs",
     "test:r2": "node scripts/check-r2.mjs",
     "test:admin": "node scripts/check-admin.mjs"
   },
@@ -37,7 +31,6 @@
     "aws4fetch": "^1.0.20",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "gray-matter": "4.0.3",
     "lucide-react": "^0.562.0",
     "motion": "^12.23.27",
     "next": "16.3.5",
@@ -66,8 +59,7 @@
     "eslint": "^9.39.2",
     "eslint-config-next": "16.3.5",
     "postcss": "^8.5.6",
-    "typescript": "^5.9.3",
-    "wrangler": "^4.131.2"
+    "typescript": "^5.9.3"
   },
   "type": "module"
 }

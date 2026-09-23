@@ -1,14 +1,11 @@
 import { mkdir, copyFile, readFile, writeFile, readdir, rename, stat, rmdir } from "node:fs/promises";
 import { resolve, join } from "node:path";
 import { createHash, randomUUID } from "node:crypto";
-import { emitKeypressEvents } from "node:readline";
 import { pathToFileURL } from "node:url";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { Client } from "pg";
-import { database, dataDirectory, closeDatabase, transaction } from "../src/lib/cms-db.ts";
-import { importRepository, importFeedback } from "../src/lib/cms-import.ts";
-import { setPassword } from "../src/lib/admin-auth.ts";
+import { database, dataDirectory, closeDatabase } from "../src/lib/cms-db.ts";
 import { readR2Image, writeR2Image } from "../src/lib/r2.ts";
 
 const hash = (bytes) => createHash("sha256").update(bytes).digest("hex");
@@ -56,7 +53,7 @@ export async function createBackup(destination) {
 export async function restoreBackup(source, destination) {
   const input = resolve(source), target = resolve(destination);
   const manifest = JSON.parse(await readFile(join(input, "manifest.json"), "utf8"));
-  if (manifest.version !== 2 || manifest.engine !== "postgresql" || !manifest.files?.["actify.dump"] || !manifest.files["media.json"]) throw new Error("Invalid PostgreSQL backup manifest. Use migrate-sqlite for old SQLite data.");
+  if (manifest.version !== 2 || manifest.engine !== "postgresql" || !manifest.files?.["actify.dump"] || !manifest.files["media.json"]) throw new Error("Invalid PostgreSQL backup manifest.");
   for (const [name, checksum] of Object.entries(manifest.files)) {
     if (!["actify.dump", "media.json"].includes(name) && !/^uploads\/[a-f0-9-]{36}\.(jpg|png|webp|gif)$/.test(name)) throw new Error("Invalid backup path.");
     if (hash(await readFile(join(input, name))) !== checksum) throw new Error(`Backup is incomplete or corrupted: ${name}`);
@@ -90,74 +87,11 @@ export async function restoreBackup(source, destination) {
   return target;
 }
 
-export async function importSqlite(source) {
-  const { DatabaseSync } = await import("node:sqlite");
-  const legacy = new DatabaseSync(resolve(source), { readOnly: true });
-  try {
-    legacy.exec("BEGIN");
-    if (Object.values(legacy.prepare("PRAGMA integrity_check").get())[0] !== "ok") throw new Error("SQLite integrity check failed.");
-    return await transaction(async (db) => {
-      await db.query("LOCK TABLE content, feedback, media, imports, settings IN SHARE ROW EXCLUSIVE MODE");
-      if ((await db.query("SELECT 1 FROM imports WHERE source='sqlite-migration'")).rowCount) return 0;
-      for (const table of ["content", "feedback", "media", "imports", "settings"]) {
-        if ((await db.query(`SELECT 1 FROM ${table} LIMIT 1`)).rowCount) throw new Error("SQLite migration requires an empty PostgreSQL CMS; existing data is never overwritten.");
-      }
-      let count = 0;
-      // Migration is one transaction; source SQLite and existing upload files stay untouched.
-      for (const row of legacy.prepare("SELECT * FROM content").all()) {
-        await db.query("INSERT INTO content(id,kind,slug,locked,version,data,published,deleted_at,updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)",
-          [row.id, row.kind, row.slug, !!row.locked, row.version, row.data, row.published, row.deleted_at, row.updated_at]); count++;
-      }
-      for (const row of legacy.prepare("SELECT * FROM feedback").all()) {
-        await db.query("INSERT INTO feedback(id,pain_point,search_query,locale,status,created_at) VALUES ($1,$2,$3,$4,$5,$6)", [row.id, row.pain_point, row.search_query, row.locale, row.status, row.created_at]); count++;
-      }
-      for (const row of legacy.prepare("SELECT * FROM media").all()) {
-        if (!mediaFilename.test(row.filename)) throw new Error("Invalid legacy media filename.");
-        const storage = row.storage || "local";
-        if (storage === "local") await stat(join(dataDirectory(), "uploads", row.filename));
-        await db.query("INSERT INTO media(id,filename,name,mime,size,width,height,created_at,storage,url) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)",
-          [row.id, row.filename, row.name, row.mime, row.size, row.width, row.height, row.created_at, storage, row.url || `/media/${row.filename}`]); count++;
-      }
-      for (const row of legacy.prepare("SELECT * FROM imports").all()) await db.query("INSERT INTO imports(source,imported_at) VALUES ($1,$2)", [row.source, row.imported_at]);
-      for (const row of legacy.prepare("SELECT * FROM settings").all()) await db.query("INSERT INTO settings(key,value) VALUES ($1,$2)", [row.key, row.value]);
-      await db.query("SELECT setval(pg_get_serial_sequence('feedback','id'), COALESCE(MAX(id),0)+1, false) FROM feedback");
-      await db.query("INSERT INTO imports(source,imported_at) VALUES ('sqlite-migration',$1)", [new Date().toISOString()]);
-      return count;
-    });
-  } finally { legacy.close(); }
-}
-async function passwordInput(prompt) {
-  process.stderr.write(prompt);
-  emitKeypressEvents(process.stdin); process.stdin.setRawMode(true); process.stdin.resume();
-  return new Promise((resolve, reject) => {
-    let value = "";
-    const finish = () => { process.stdin.off("keypress", keypress); process.stdin.setRawMode(false); process.stdin.pause(); process.stderr.write("\n"); };
-    function keypress(text, key) {
-      if (key?.ctrl && key.name === "c") { finish(); reject(new Error("Cancelled.")); }
-      else if (key?.name === "return") { finish(); resolve(value); }
-      else if (key?.name === "backspace") value = value.slice(0, -1);
-      else if (!key?.ctrl && !key?.meta && text && !text.includes("\u001b")) value += text;
-    }
-    process.stdin.on("keypress", keypress);
-  });
-}
 async function main() {
   const [command, argument] = process.argv.slice(2);
-  if (command === "import") console.log(`Imported ${await importRepository(process.cwd())} content files. Existing edits were preserved.`);
-  else if (command === "import-feedback" && argument) console.log(`Imported ${await importFeedback(JSON.parse(await readFile(argument, "utf8")))} feedback rows.`);
-  else if (command === "migrate-sqlite" && argument) console.log(`Migrated ${await importSqlite(argument)} rows from SQLite. Source files were preserved.`);
-  else if (command === "password") {
-    let password = process.env.ADMIN_SETUP_PASSWORD;
-    if (!password) {
-      if (!process.stdin.isTTY) throw new Error("Use an interactive terminal, or supply ADMIN_SETUP_PASSWORD for setup only.");
-      password = await passwordInput("New administrator password (12–256 characters; hidden): ");
-      if (password !== await passwordInput("Confirm password: ")) throw new Error("Passwords do not match.");
-    }
-    await setPassword(password); delete process.env.ADMIN_SETUP_PASSWORD;
-    console.log("Administrator password saved as a hash. All previous sessions revoked.");
-  } else if (command === "backup" && argument) console.log(`Backup completed: ${await createBackup(argument)}`);
+  if (command === "backup" && argument) console.log(`Backup completed: ${await createBackup(argument)}`);
   else if (command === "restore" && argument) console.log(`Restored: ${await restoreBackup(argument, dataDirectory())}`);
-  else throw new Error("Usage: node scripts/admin.mjs import | import-feedback <json> | migrate-sqlite <database-file> | password | backup <new-directory> | restore <backup-directory>");
+  else throw new Error("Usage: node scripts/admin.mjs backup <new-directory> | restore <backup-directory>");
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   for (const file of [".env.local", ".env"]) {
