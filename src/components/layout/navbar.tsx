@@ -56,7 +56,7 @@ export default async function Navbar() {
             return (
               <Tooltip key={`social-${name}-${index}`}>
                 <TooltipTrigger asChild>
-                  <a
+                  <Link
                     href={social.url}
                     aria-label={social.name}
                     className="rounded-full focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
@@ -66,7 +66,7 @@ export default async function Navbar() {
                     <DockIcon className="rounded-3xl cursor-pointer size-full bg-background p-0 text-muted-foreground hover:text-foreground hover:bg-muted backdrop-blur-3xl border border-border transition-colors">
                       <IconComponent className="size-full rounded-sm overflow-hidden object-contain" />
                     </DockIcon>
-                  </a>
+                  </Link>
                 </TooltipTrigger>
                 <TooltipContent
                   side="top"
@@ -83,21 +83,9 @@ export default async function Navbar() {
           orientation="vertical"
           className="h-2/3 m-auto w-px bg-border"
         />
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <DockIcon className="rounded-3xl cursor-pointer size-full bg-background p-0 text-muted-foreground hover:text-foreground hover:bg-muted backdrop-blur-3xl border border-border transition-colors">
-              <ModeToggle className="size-full cursor-pointer" />
-            </DockIcon>
-          </TooltipTrigger>
-          <TooltipContent
-            side="top"
-            sideOffset={8}
-            className="rounded-xl bg-primary text-primary-foreground px-4 py-2 text-sm shadow-[0_10px_40px_-10px_rgba(0,0,0,0.3)] dark:shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)]"
-          >
-            <p>{t.theme}</p>
-            <TooltipArrow className="fill-primary" />
-          </TooltipContent>
-        </Tooltip>
+        <DockIcon className="rounded-3xl cursor-pointer size-full bg-background p-0 text-muted-foreground hover:text-foreground hover:bg-muted backdrop-blur-3xl border border-border transition-colors">
+          <ModeToggle className="size-full cursor-pointer" />
+        </DockIcon>
         <LanguageToggle />
       </Dock>
     </nav>
