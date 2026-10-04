@@ -192,6 +192,23 @@ sudo journalctl -u actify -n 100 --no-pager
 sudo journalctl -u caddy -n 100 --no-pager
 ```
 
+## Plausible 访问统计
+
+前台布局 `src/app/(site)/layout.tsx` 使用 Next.js 的 `Script` 加载自托管 Plausible CE 官方脚本，无需额外 npm 包或浏览器 API Key。在实际生产环境文件中同时配置：
+
+```dotenv
+PLAUSIBLE_DOMAIN=actify.cc
+PLAUSIBLE_ORIGIN=https://stats.actify.cc
+```
+
+`PLAUSIBLE_ORIGIN` 是统计平台根地址，不带脚本路径；域名必须与 Plausible 中登记的网站一致。两项都留空时不启用，只有一项填写时明确报配置错误。配置在服务器渲染时读取，修改后重启 Node 服务；首次安装或代码升级仍须构建。
+
+脚本在页面交互初始化后加载，自动采集首次访问和 Next.js 前台路由切换；使用官方 `script.exclusions.js` 排除 `/admin` 及全部子路径，后台和草稿预览也不挂载脚本。`pnpm dev` 不加载统计；生产脚本本身忽略 localhost、自动化浏览器及主动设置忽略标记的访客。默认接入页面浏览和参与度，不自动定义反馈提交、外链点击等自定义事件或目标。
+
+在 `https://stats.actify.cc/actify.cc` 查看报表；数据由独立 Plausible 服务持久化，这里不调用 Stats API，也不需要把管理员密码或 API Key 放进网站。采集从接入后的真实访问开始，过去未采集的数据不会补回。`pnpm test:admin` 覆盖配置启用 / 关闭、后台和私有预览排除；浏览器验收另核对实际事件请求与前台跳转。
+
+2026-10-04 当前生产应用位于新主机 `/srv/apps/Actify-Blog`，使用 `.env`、`actify-blog.service` 和 Node.js 24；本文 `/opt/actify`、`/etc/actify.env` 与 `actify.service` 是首次部署示例，已有服务沿用实际路径。
+
 ## Cloudflare 缓存
 
 动态输出均读已发布数据并带 no-store / private。以下两条 Cache Rules **仅匹配主站 `actify.cc`**，不要让主站绕过规则同时匹配图片子域名。移除旧的 Cache Everything、强制 Edge TTL 或 APO 全页缓存：

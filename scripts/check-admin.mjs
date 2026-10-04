@@ -19,6 +19,8 @@ const password = "isolated-http-check-password";
 const username = "http-admin";
 process.env.ADMIN_USERNAME = username;
 process.env.ADMIN_PASSWORD = password;
+process.env.PLAUSIBLE_DOMAIN = "actify.example";
+process.env.PLAUSIBLE_ORIGIN = "https://analytics.example/";
 const probe = new Client({ connectionString: process.env.DATABASE_URL });
 const socket = createServer(); await new Promise((resolve) => socket.listen(0, "127.0.0.1", resolve));
 const port = socket.address().port; await new Promise((resolve) => socket.close(resolve));
@@ -73,6 +75,15 @@ try {
   const setCookie = login.headers.get("set-cookie"); assert.match(setCookie, /HttpOnly/); assert.match(setCookie, /Secure/); assert.match(setCookie, /SameSite=Strict/);
   cookie = setCookie.split(";")[0];
   assert.equal((await request("/admin/posts")).status, 200);
+  const trackedHome = await (await request("/")).text();
+  assert.ok(trackedHome.includes("https://analytics.example/js/script.exclusions.js"), "Public pages load the configured self-hosted tracker");
+  assert.ok(trackedHome.includes("actify.example") && trackedHome.includes("/admin,/admin/**"), "Tracker uses the configured site and excludes admin navigation");
+  // The RSC payload includes the unused root 404 layout; inspect executable/resource tags.
+  const trackerResource = /<(?:script|link)\b[^>]*(?:src|href)="https:\/\/analytics\.example\/js\/script\.exclusions\.js"[^>]*>/;
+  assert.match(trackedHome, trackerResource, "Public pages preload the tracker for hydration");
+  for (const path of ["/admin/login", "/admin/posts"]) {
+    assert.doesNotMatch(await (await request(path)).text(), trackerResource, "Admin pages do not load or preload the tracker");
+  }
   const initial = await json(await request("/api/admin/posts")); assert.equal(initial.total, 0);
   assert.equal((await request("/blog")).status, 200);
   let entry = await json(await request("/api/admin/posts", "POST"), 201);
@@ -82,6 +93,7 @@ try {
   assert.equal((await request("/blog/http-publish-check")).status, 404);
   assert.equal((await request(`/admin/posts/${entry.id}/preview`, "GET", undefined, false)).status, 307);
   assert.match(await (await request(`/admin/posts/${entry.id}/preview`)).text(), /草稿正文一/);
+  assert.doesNotMatch(await (await request(`/admin/posts/${entry.id}/preview`)).text(), trackerResource, "Private draft previews do not load or preload the tracker");
   entry = await edit("publish", { locale: "zh" });
   let body = await (await request("/blog/http-publish-check")).text();
   assert.match(body, /section-实际正文/);
@@ -160,7 +172,10 @@ try {
   }
   const exited = once(server, "exit"); server.kill(); await exited;
   await probe.query("DROP TABLE rate_limits");
+  process.env.PLAUSIBLE_DOMAIN = "";
+  process.env.PLAUSIBLE_ORIGIN = "";
   await closeDatabase(); server = start(); await ready();
+  assert.doesNotMatch(await (await request("/")).text(), /plausible-analytics/, "Tracking stays disabled when configuration is empty");
   assert.equal((await probe.query("SELECT to_regclass('public.rate_limits') AS name")).rows[0].name, "rate_limits", "Restart recreates a missing table before any request");
   assert.match(await (await request("/blog/http-publish-check")).text(), /新正文二/);
   assert.deepEqual(Buffer.from(await (await request(media.url)).arrayBuffer()), Buffer.from(await imageResponse.arrayBuffer()));
@@ -172,6 +187,6 @@ try {
   assert.equal((await request("/api/admin/logout", "POST")).status, 200);
   assert.equal((await request("/api/admin/posts")).status, 401);
   assert.equal((await (await database()).query("SELECT slug FROM content WHERE id=$1", [entry.id])).rows[0].slug, "http-publish-check");
-  console.log("Production HTTP checks passed: startup table creation and repair, auth, origin checks, live publication, draft isolation, translations, RSS/sitemap/share images, projects, uploads, moderation, pagination, cache headers and restart persistence.");
+  console.log("Production HTTP checks passed: startup table creation and repair, auth, origin checks, live publication, draft isolation, translations, RSS/sitemap/share images, projects, uploads, moderation, pagination, cache headers, optional public-only analytics and restart persistence.");
 } catch (error) { console.error(output.slice(-6000)); throw error; }
 finally { if (server.exitCode === null) { const exited = once(server, "exit"); server.kill(); await exited; } await probe.end(); await testDb.cleanup(); }
